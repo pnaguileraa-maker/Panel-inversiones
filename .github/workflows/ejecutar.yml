@@ -1,0 +1,80 @@
+name: Reporte Diario Panel Inversiones
+
+on:
+  schedule:
+    # Chile cambia de huso horario dos veces al año (UTC-3 en horario de verano,
+    # UTC-4 en horario de invierno). Se programan ambos cron y el job
+    # "verificar-horario" decide cuál corresponde usando la hora real de Chile,
+    # para que SIEMPRE llegue cerca de las 09:40-10:00 AM local y nunca se
+    # envíe el reporte dos veces el mismo día.
+    - cron: '40 12 * * *'  # 09:40 Chile en horario de verano (UTC-3, aprox. sep-abr)
+    - cron: '40 13 * * *'  # 09:40 Chile en horario de invierno (UTC-4, aprox. abr-sep)
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [ejecutar-reporte]
+
+jobs:
+  verificar-horario:
+    runs-on: ubuntu-latest
+    outputs:
+      debe_ejecutar: ${{ steps.chequeo.outputs.debe_ejecutar }}
+    steps:
+      - name: Comprobar si corresponde al horario actual de Chile
+        id: chequeo
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "Disparo manual (${{ github.event_name }}) — se ejecuta siempre."
+            echo "debe_ejecutar=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          HORA_CHILE=$(TZ='America/Santiago' date +%H)
+          MIN_CHILE=$(TZ='America/Santiago' date +%M)
+          echo "Hora actual en Chile: ${HORA_CHILE}:${MIN_CHILE}"
+
+          if [ "$HORA_CHILE" = "09" ]; then
+            echo "Horario correcto en Chile — se ejecuta el reporte."
+            echo "debe_ejecutar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Son las ${HORA_CHILE} hrs en Chile — este disparo corresponde al otro horario estacional (verano/invierno). Se omite para no duplicar el envío."
+            echo "debe_ejecutar=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  ejecutar-reporte:
+    needs: verificar-horario
+    if: needs.verificar-horario.outputs.debe_ejecutar == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ejecutar análisis diario
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+        run: python analisis_diario.py
+
+      - name: Subir bitácora y log como artefactos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-${{ github.run_id }}
+          path: |
+            bitacora_inversiones.csv
+            prompt_para_claude.md
+          retention-days: 90
+          if-no-files-found: ignore

@@ -1,0 +1,9 @@
+yfinance
+pandas
+numpy
+matplotlib
+anthropic
+python-dotenv
+requests
+gspread
+google-auth

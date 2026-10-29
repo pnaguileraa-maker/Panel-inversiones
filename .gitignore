@@ -1,0 +1,19 @@
+
+# Secretos y configuración local — nunca deben subirse al repo
+.env
+google_credentials.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Artefactos temporales generados por el script
+graficos_*/
+ejecucion.log
+
+# IDE
+.idea/
