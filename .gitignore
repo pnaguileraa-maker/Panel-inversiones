@@ -14,6 +14,7 @@ venv/
 # Artefactos temporales generados por el script
 graficos_*/
 ejecucion.log
+public/
 
 # IDE
 .idea/

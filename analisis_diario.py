@@ -1,4 +1,7 @@
 import os
+import re
+import html
+import json
 import datetime
 import shutil
 import tempfile
@@ -33,6 +36,8 @@ ACTIVOS = {
 }
 
 ARCHIVO_CSV = "bitacora_inversiones.csv"
+CARPETA_SITIO = "public"
+ARCHIVO_SITIO = os.path.join(CARPETA_SITIO, "index.html")
 
 DIAS_GRAFICO = 60
 UMBRAL_VARIACION = 2.0   # %
@@ -40,9 +45,20 @@ RSI_SOBRECOMPRA = 70
 RSI_SOBREVENTA = 30
 LIMITE_TELEGRAM = 4000
 
+SECCIONES_IA = [
+    "🎙️ *RESUMEN EJECUTIVO Y CONTEXTO DEL DÍA*",
+    "💡 *ANÁLISIS Y ORIENTACIÓN POR ACTIVO*",
+    "🚨 *ALERTAS DESTACADAS DEL DÍA*",
+    "🎯 *CONCLUSIÓN Y CONSEJO OPERATIVO DEL DÍA*",
+]
+
+
+# ---------------------------------------------------------------------------
+# Indicadores técnicos
+# ---------------------------------------------------------------------------
 
 def calcular_indicadores(df):
-    """Calcula variación implícita (via Close), RSI(14), SMA20 y SMA200 sobre el historial recibido."""
+    """Calcula RSI(14), SMA20 y SMA200 sobre el historial recibido."""
     close = df['Close']
 
     delta = close.diff()
@@ -68,6 +84,25 @@ def detectar_alertas(nombre, var_pct, rsi):
         alertas.append(f"🧊 {nombre}: RSI en {rsi:.1f} — zona de SOBREVENTA.")
     return alertas
 
+
+def calcular_accion_recomendada(var_pct, rsi):
+    """Recomendación táctica determinística (no depende de la IA) para badges del dashboard."""
+    if rsi < RSI_SOBREVENTA:
+        return "Zona de compra con prudencia", "accion-buy"
+    if rsi > RSI_SOBRECOMPRA:
+        return "Tomar ganancias", "accion-sell"
+    if abs(var_pct) >= UMBRAL_VARIACION:
+        return "Esperar confirmación", "accion-wait"
+    return "Mantener cautela", "accion-hold"
+
+
+def slugify_ticker(ticker):
+    return re.sub(r"[^a-zA-Z0-9]", "_", ticker)
+
+
+# ---------------------------------------------------------------------------
+# Gráficos PNG para Telegram
+# ---------------------------------------------------------------------------
 
 def generar_grafico(nombre, ticker, data, carpeta):
     """Genera un PNG de los últimos DIAS_GRAFICO días: precio+SMA20+SMA200 arriba, RSI(14) abajo."""
@@ -99,6 +134,10 @@ def generar_grafico(nombre, ticker, data, carpeta):
     plt.close(fig)
     return ruta
 
+
+# ---------------------------------------------------------------------------
+# Telegram
+# ---------------------------------------------------------------------------
 
 def dividir_mensaje(texto, limite=LIMITE_TELEGRAM):
     """Divide un texto largo en partes <= limite caracteres, respetando saltos de párrafo/línea cuando es posible."""
@@ -161,6 +200,10 @@ def enviar_telegram_foto(ruta_imagen, caption=""):
         print(f"⚠️ Excepción al enviar gráfico: {e}")
 
 
+# ---------------------------------------------------------------------------
+# Análisis didáctico con IA (Claude)
+# ---------------------------------------------------------------------------
+
 def construir_contexto_datos(metricas):
     lineas = []
     for m in metricas:
@@ -184,10 +227,12 @@ def construir_mensaje_respaldo(metricas, alertas):
         estado_rsi = "Sobrecompra" if m['rsi'] > RSI_SOBRECOMPRA else (
             "Sobreventa" if m['rsi'] < RSI_SOBREVENTA else "Neutral"
         )
+        accion_texto, _ = calcular_accion_recomendada(m['var_pct'], m['rsi'])
         lineas.append(
             f"{emoji_var} *{m['nombre']}*: ${m['precio']:,.2f} ({m['var_pct']:+.2f}%)\n"
             f"  • RSI(14): {m['rsi']:.1f} ({estado_rsi})\n"
-            f"  • SMA20: ${m['sma20']:,.2f} | SMA200: ${m['sma200']:,.2f}"
+            f"  • SMA20: ${m['sma20']:,.2f} | SMA200: ${m['sma200']:,.2f}\n"
+            f"  • ¿Qué hacer hoy? {accion_texto}"
         )
 
     lineas.append("\n🚨 *ALERTAS DESTACADAS DEL DÍA*")
@@ -266,6 +311,389 @@ def generar_analisis_ia(fecha_hoy, metricas, alertas):
         return None
 
 
+# ---------------------------------------------------------------------------
+# Generación del dashboard web (index.html + Chart.js)
+# ---------------------------------------------------------------------------
+
+def _convertir_markdown_simple(texto):
+    """Convierte **negritas** de Markdown a <strong> sobre texto ya escapado como HTML."""
+    escapado = html.escape(texto, quote=True)
+    con_negritas = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escapado)
+    parrafos = [p.strip() for p in con_negritas.split("\n\n") if p.strip()]
+    return "".join(f"<p>{p.replace(chr(10), '<br>')}</p>" for p in parrafos)
+
+
+def render_resumen_ia_html(texto_ia):
+    """Divide el texto generado por Claude (o el de respaldo) en sus 4 secciones y las renderiza en HTML."""
+    if not texto_ia:
+        return "<p>No se pudo generar el análisis con IA hoy. Revisa los datos en las tarjetas de activos.</p>"
+
+    patron_headers = "|".join(re.escape(h) for h in SECCIONES_IA)
+    partes = re.split(f"({patron_headers})", texto_ia)
+
+    if len(partes) == 1:
+        return _convertir_markdown_simple(texto_ia)
+
+    bloques = []
+    i = 0
+    while i < len(partes):
+        fragmento = partes[i].strip()
+        if fragmento in SECCIONES_IA:
+            titulo = fragmento.replace("*", "")
+            cuerpo = partes[i + 1] if i + 1 < len(partes) else ""
+            bloques.append(
+                f'<div class="ia-seccion"><h3>{html.escape(titulo)}</h3>{_convertir_markdown_simple(cuerpo)}</div>'
+            )
+            i += 2
+        else:
+            if fragmento:
+                bloques.append(_convertir_markdown_simple(fragmento))
+            i += 1
+
+    return "".join(bloques)
+
+
+def construir_panel_alertas_html(alertas):
+    if not alertas:
+        return (
+            '<section class="alerts-panel alerts-panel-calm">'
+            '<h2>🚨 Panel de alertas destacadas</h2>'
+            '<p>Hoy no se registraron movimientos ≥ ±2% ni niveles de RSI extremos. Mercado relativamente tranquilo.</p>'
+            '</section>'
+        )
+
+    items = "".join(f'<li class="alert-item">{html.escape(a)}</li>' for a in alertas)
+    return (
+        '<section class="alerts-panel">'
+        '<h2>🚨 Panel de alertas destacadas</h2>'
+        f'<ul class="alert-list">{items}</ul>'
+        '</section>'
+    )
+
+
+def construir_tarjeta_html(m):
+    slug = slugify_ticker(m['ticker'])
+    var_class = "delta-up" if m['var_pct'] >= 0 else "delta-down"
+
+    if m['rsi'] < RSI_SOBREVENTA:
+        rsi_class, rsi_label = "badge-good", "Sobreventa"
+    elif m['rsi'] > RSI_SOBRECOMPRA:
+        rsi_class, rsi_label = "badge-critical", "Sobrecompra"
+    else:
+        rsi_class, rsi_label = "badge-neutral", "Neutral"
+
+    accion_texto, accion_clase = calcular_accion_recomendada(m['var_pct'], m['rsi'])
+
+    return f"""
+    <article class="asset-card">
+      <header class="asset-card-header">
+        <h3>{html.escape(m['nombre'])}</h3>
+        <span class="ticker">{html.escape(m['ticker'])}</span>
+      </header>
+      <div class="asset-price-row">
+        <span class="price">${m['precio']:,.2f}</span>
+        <span class="delta {var_class}">{m['var_pct']:+.2f}%</span>
+      </div>
+      <div class="asset-metrics">
+        <div class="metric">
+          <span class="metric-label">RSI (14)</span>
+          <span class="badge {rsi_class}">{m['rsi']:.1f} · {rsi_label}</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">SMA 20</span>
+          <span class="metric-value">${m['sma20']:,.2f}</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">SMA 200</span>
+          <span class="metric-value">${m['sma200']:,.2f}</span>
+        </div>
+      </div>
+      <div class="accion-badge {accion_clase}">
+        <span class="accion-pregunta">¿Qué hacer hoy?</span>
+        <span class="accion-texto">{html.escape(accion_texto)}</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-precio-{slug}"></canvas>
+      </div>
+      <div class="chart-wrap chart-wrap-rsi">
+        <canvas id="chart-rsi-{slug}"></canvas>
+      </div>
+    </article>
+    """
+
+
+PLANTILLA_HTML = """<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel Inversiones — Reporte __FECHA__</title>
+<style>
+  :root {
+    --page-bg: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-alt: #202020;
+    --ink-primary: #ffffff;
+    --ink-secondary: #c3c2b7;
+    --ink-muted: #898781;
+    --hairline: #2c2c2a;
+    --border: rgba(255,255,255,0.10);
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-critical: #d03b3b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--ink-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px clamp(16px, 4vw, 40px);
+  }
+  .topbar h1 { margin: 0; font-size: clamp(20px, 3vw, 28px); }
+  .topbar .subtitle { margin: 4px 0 0; color: var(--ink-muted); font-size: 14px; }
+  .container { max-width: 1240px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 60px; }
+  section { margin-bottom: 32px; }
+  h2 { font-size: 18px; margin: 0 0 14px; }
+  .alerts-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--status-critical);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .alerts-panel-calm { border-left-color: var(--status-good); }
+  .alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .alert-item {
+    background: var(--surface-alt);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--ink-secondary);
+  }
+  .ai-summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px clamp(18px, 3vw, 32px);
+  }
+  .ia-seccion { max-width: 760px; margin-bottom: 20px; }
+  .ia-seccion:last-child { margin-bottom: 0; }
+  .ia-seccion h3 { font-size: 15px; color: var(--ink-primary); margin: 0 0 8px; }
+  .ia-seccion p { margin: 0 0 10px; color: var(--ink-secondary); font-size: 15px; }
+  .ia-seccion strong { color: var(--ink-primary); }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .asset-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .asset-card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .asset-card-header h3 { margin: 0; font-size: 17px; }
+  .ticker { color: var(--ink-muted); font-size: 13px; }
+  .asset-price-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+  .price { font-size: 26px; font-weight: 600; }
+  .delta { font-size: 15px; font-weight: 600; }
+  .delta-up { color: var(--status-good); }
+  .delta-down { color: var(--status-critical); }
+  .asset-metrics { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .metric { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+  .metric-label { color: var(--ink-muted); }
+  .metric-value { color: var(--ink-secondary); font-weight: 500; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-good { background: rgba(12,163,12,0.16); color: var(--status-good); }
+  .badge-critical { background: rgba(208,59,59,0.16); color: var(--status-critical); }
+  .badge-neutral { background: rgba(137,135,129,0.16); color: var(--ink-secondary); }
+  .accion-badge {
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .accion-pregunta { display: block; color: var(--ink-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+  .accion-texto { font-weight: 600; }
+  .accion-buy { background: rgba(12,163,12,0.14); }
+  .accion-buy .accion-texto { color: var(--status-good); }
+  .accion-sell { background: rgba(208,59,59,0.14); }
+  .accion-sell .accion-texto { color: var(--status-critical); }
+  .accion-wait { background: rgba(250,178,25,0.14); }
+  .accion-wait .accion-texto { color: var(--status-warning); }
+  .accion-hold { background: rgba(137,135,129,0.14); }
+  .accion-hold .accion-texto { color: var(--ink-secondary); }
+  .chart-wrap { position: relative; height: 260px; margin-top: 14px; }
+  .chart-wrap-rsi { height: 200px; }
+  footer {
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 12px;
+    padding: 24px;
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 480px) {
+    .price { font-size: 22px; }
+    .chart-wrap { height: 220px; }
+    .chart-wrap-rsi { height: 180px; }
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>📊 Panel Inversiones</h1>
+    <p class="subtitle">Reporte diario · __FECHA__ · Generado automáticamente, no es asesoría financiera personalizada</p>
+  </header>
+
+  <main class="container">
+    __ALERTAS_HTML__
+
+    <section class="ai-summary">
+      <h2>🎙️ Resumen ejecutivo e interpretación de IA</h2>
+      __RESUMEN_HTML__
+    </section>
+
+    <section>
+      <h2>📊 Activos monitoreados</h2>
+      <div class="cards-grid">
+        __TARJETAS_HTML__
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Panel Inversiones · Reporte generado automáticamente con yfinance y Claude (claude-sonnet-5) · Contenido educativo, no constituye asesoría financiera personalizada.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script>
+    const DATOS = __DATOS_JSON__;
+
+    Chart.defaults.color = '#c3c2b7';
+    Chart.defaults.borderColor = '#2c2c2a';
+    Chart.defaults.font.family = "system-ui, -apple-system, 'Segoe UI', sans-serif";
+
+    Object.entries(DATOS).forEach(([slug, d]) => {
+      const ctxPrecio = document.getElementById('chart-precio-' + slug);
+      if (ctxPrecio) {
+        new Chart(ctxPrecio, {
+          type: 'line',
+          data: {
+            labels: d.fechas,
+            datasets: [
+              { label: 'Precio', data: d.precio, borderColor: '#3987e5', backgroundColor: '#3987e5', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0 },
+              { label: 'SMA 20', data: d.sma20, borderColor: '#d95926', backgroundColor: '#d95926', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0, spanGaps: true },
+              { label: 'SMA 200', data: d.sma200, borderColor: '#199e70', backgroundColor: '#199e70', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0, spanGaps: true }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 16, boxHeight: 2 } },
+              tooltip: { mode: 'index', intersect: false },
+              title: { display: true, text: d.nombre + ' — Precio y medias móviles', color: '#ffffff', font: { size: 13, weight: '600' } }
+            },
+            scales: {
+              x: { grid: { color: '#2c2c2a' }, ticks: { maxTicksLimit: 8 } },
+              y: { grid: { color: '#2c2c2a' } }
+            }
+          }
+        });
+      }
+
+      const ctxRsi = document.getElementById('chart-rsi-' + slug);
+      if (ctxRsi) {
+        const linea70 = d.rsi.map(function () { return 70; });
+        const linea30 = d.rsi.map(function () { return 30; });
+        new Chart(ctxRsi, {
+          type: 'line',
+          data: {
+            labels: d.fechas,
+            datasets: [
+              { label: 'RSI (14)', data: d.rsi, borderColor: '#3987e5', backgroundColor: '#3987e5', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0, spanGaps: true },
+              { label: 'Sobrecompra (70)', data: linea70, borderColor: '#d03b3b', borderWidth: 1, borderDash: [6, 4], pointRadius: 0, tension: 0 },
+              { label: 'Sobreventa (30)', data: linea30, borderColor: '#0ca30c', borderWidth: 1, borderDash: [6, 4], pointRadius: 0, tension: 0 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 16, boxHeight: 2 } },
+              tooltip: { mode: 'index', intersect: false },
+              title: { display: true, text: 'RSI (14)', color: '#ffffff', font: { size: 13, weight: '600' } }
+            },
+            scales: {
+              x: { grid: { color: '#2c2c2a' }, ticks: { maxTicksLimit: 8 } },
+              y: { min: 0, max: 100, grid: { color: '#2c2c2a' } }
+            }
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+"""
+
+
+def generar_pagina_web(fecha_hoy, metricas, alertas, resumen_ia_texto, datos_por_activo):
+    os.makedirs(CARPETA_SITIO, exist_ok=True)
+
+    resumen_html = render_resumen_ia_html(resumen_ia_texto)
+    alertas_html = construir_panel_alertas_html(alertas)
+    tarjetas_html = "".join(construir_tarjeta_html(m) for m in metricas)
+
+    datos_chart = {}
+    for nombre, (ticker, data) in datos_por_activo.items():
+        slug = slugify_ticker(ticker)
+        ventana = data.tail(DIAS_GRAFICO)
+        datos_chart[slug] = {
+            "nombre": nombre,
+            "fechas": [idx.strftime("%d-%m") for idx in ventana.index],
+            "precio": [round(float(v), 4) for v in ventana['Close']],
+            "sma20": [None if pd.isna(v) else round(float(v), 4) for v in ventana['SMA_20']],
+            "sma200": [None if pd.isna(v) else round(float(v), 4) for v in ventana['SMA_200']],
+            "rsi": [None if pd.isna(v) else round(float(v), 2) for v in ventana['RSI_14']],
+        }
+    datos_json = json.dumps(datos_chart, ensure_ascii=False).replace("</script", "<\\/script")
+
+    html_final = (
+        PLANTILLA_HTML
+        .replace("__FECHA__", fecha_hoy)
+        .replace("__ALERTAS_HTML__", alertas_html)
+        .replace("__RESUMEN_HTML__", resumen_html)
+        .replace("__TARJETAS_HTML__", tarjetas_html)
+        .replace("__DATOS_JSON__", datos_json)
+    )
+
+    with open(ARCHIVO_SITIO, "w", encoding="utf-8") as f:
+        f.write(html_final)
+    print(f"✅ Dashboard web generado en '{ARCHIVO_SITIO}'.")
+
+
+# ---------------------------------------------------------------------------
+# Orquestación principal
+# ---------------------------------------------------------------------------
+
 def generar_reporte():
     fecha_hoy = datetime.datetime.now().strftime("%Y-%m-%d")
 
@@ -338,7 +766,7 @@ def generar_reporte():
     encabezado = f"📊 *ANÁLISIS DE MERCADO DIARIO — PANEL INVERSIONES* ({fecha_hoy})\n\n"
     enviar_telegram_mensaje(encabezado + mensaje)
 
-    # 3. Gráficos técnicos de los 5 activos
+    # 3. Gráficos técnicos (PNG) de los 5 activos, enviados a Telegram
     carpeta_temp = tempfile.mkdtemp(prefix="graficos_")
     try:
         for nombre, (ticker, data) in datos_por_activo.items():
@@ -346,6 +774,9 @@ def generar_reporte():
             enviar_telegram_foto(ruta_grafico, caption=f"📈 {nombre} ({ticker}) — últimos {DIAS_GRAFICO} días")
     finally:
         shutil.rmtree(carpeta_temp, ignore_errors=True)
+
+    # 4. Dashboard web (index.html con Chart.js) para publicar en GitHub Pages
+    generar_pagina_web(fecha_hoy, metricas, alertas_totales, mensaje, datos_por_activo)
 
 
 if __name__ == "__main__":

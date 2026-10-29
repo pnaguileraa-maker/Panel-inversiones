@@ -13,6 +13,13 @@ on:
   repository_dispatch:
     types: [ejecutar-reporte]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: "pages-panel-inversiones"
+  cancel-in-progress: false
+
 jobs:
   verificar-horario:
     runs-on: ubuntu-latest
@@ -45,6 +52,8 @@ jobs:
     if: needs.verificar-horario.outputs.debe_ejecutar == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
 
     steps:
       - name: Clonar repositorio
@@ -60,7 +69,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Ejecutar análisis diario
+      - name: Ejecutar análisis diario (Telegram + dashboard web)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -75,3 +84,26 @@ jobs:
           path: bitacora_inversiones.csv
           retention-days: 90
           if-no-files-found: ignore
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Empaquetar el dashboard (public/) como artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  publicar-pages:
+    needs: ejecutar-reporte
+    if: needs.ejecutar-reporte.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
