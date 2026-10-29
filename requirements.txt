@@ -5,5 +5,3 @@ matplotlib
 anthropic
 python-dotenv
 requests
-gspread
-google-auth

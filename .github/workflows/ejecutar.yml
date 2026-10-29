@@ -65,16 +65,13 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python analisis_diario.py
 
-      - name: Subir bitácora y log como artefactos
+      - name: Subir bitácora actualizada como artefacto
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: reporte-${{ github.run_id }}
-          path: |
-            bitacora_inversiones.csv
-            prompt_para_claude.md
+          name: bitacora-${{ github.run_id }}
+          path: bitacora_inversiones.csv
           retention-days: 90
           if-no-files-found: ignore
