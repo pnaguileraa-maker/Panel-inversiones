@@ -1,7 +1,6 @@
 yfinance
 pandas
-numpy
 matplotlib
-anthropic
-python-dotenv
 requests
+python-dotenv
+anthropic

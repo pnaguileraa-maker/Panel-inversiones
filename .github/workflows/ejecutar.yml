@@ -1,5 +1,10 @@
 name: Reporte Diario Panel Inversiones
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 on:
   schedule:
     # Chile cambia de huso horario dos veces al año (UTC-3 en horario de verano,
@@ -12,9 +17,6 @@ on:
   workflow_dispatch: {}
   repository_dispatch:
     types: [ejecutar-reporte]
-
-permissions:
-  contents: read
 
 concurrency:
   group: "pages-panel-inversiones"
@@ -52,8 +54,6 @@ jobs:
     if: needs.verificar-horario.outputs.debe_ejecutar == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: read
 
     steps:
       - name: Clonar repositorio
@@ -62,7 +62,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Instalar dependencias
         run: |
@@ -97,9 +97,6 @@ jobs:
     needs: ejecutar-reporte
     if: needs.ejecutar-reporte.result == 'success'
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
