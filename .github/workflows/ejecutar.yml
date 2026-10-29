@@ -88,10 +88,10 @@ jobs:
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Empaquetar el dashboard (public/) como artefacto de Pages
+      - name: Empaquetar el repositorio (incluye index.html) como artefacto de Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: .
 
   publicar-pages:
     needs: ejecutar-reporte

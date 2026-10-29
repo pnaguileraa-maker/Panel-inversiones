@@ -36,8 +36,7 @@ ACTIVOS = {
 }
 
 ARCHIVO_CSV = "bitacora_inversiones.csv"
-CARPETA_SITIO = "public"
-ARCHIVO_SITIO = os.path.join(CARPETA_SITIO, "index.html")
+ARCHIVO_SITIO = "index.html"  # se genera en la raíz del repo (upload-pages-artifact usa path: '.')
 
 DIAS_GRAFICO = 60
 UMBRAL_VARIACION = 2.0   # %
@@ -98,6 +97,13 @@ def calcular_accion_recomendada(var_pct, rsi):
 
 def slugify_ticker(ticker):
     return re.sub(r"[^a-zA-Z0-9]", "_", ticker)
+
+
+def _descripcion_estado(m):
+    estado_rsi = "sobrecompra" if m['rsi'] > RSI_SOBRECOMPRA else (
+        "sobreventa" if m['rsi'] < RSI_SOBREVENTA else "neutral"
+    )
+    return f"${m['precio']:,.2f} ({m['var_pct']:+.2f}%), RSI {m['rsi']:.1f} (zona {estado_rsi})"
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +207,7 @@ def enviar_telegram_foto(ruta_imagen, caption=""):
 
 
 # ---------------------------------------------------------------------------
-# Análisis didáctico con IA (Claude)
+# Análisis didáctico con IA (Claude) — Reporte 1: Telegram
 # ---------------------------------------------------------------------------
 
 def construir_contexto_datos(metricas):
@@ -216,7 +222,7 @@ def construir_contexto_datos(metricas):
 
 
 def construir_mensaje_respaldo(metricas, alertas):
-    """Mensaje de respaldo con los datos crudos, usado solo si la IA no respondió."""
+    """Respaldo para TELEGRAM (formato Markdown clásico de Telegram), usado solo si la IA no respondió."""
     lineas = [
         "🎙️ *RESUMEN EJECUTIVO Y CONTEXTO DEL DÍA*",
         "No se pudo generar el análisis con IA hoy; este es un resumen automático con los datos del día.\n",
@@ -261,25 +267,28 @@ def generar_analisis_ia(fecha_hoy, metricas, alertas):
         f"Alertas detectadas automáticamente por el sistema (variación diaria >= ±{UMBRAL_VARIACION:.0f}% "
         f"o RSI fuera del rango 30-70):\n{bloque_alertas}\n\n"
         "Con estos datos, redacta el mensaje del reporte diario para Telegram dirigido a inversionistas "
-        "PRINCIPIANTES que necesitan orientación práctica y clara. Usa EXACTAMENTE esta estructura, con estos "
-        "encabezados literales (conserva los emojis y el formato en negrita con asteriscos de Markdown de "
-        "Telegram):\n\n"
+        "PRINCIPIANTES que necesitan orientación práctica, directa y clara. Usa EXACTAMENTE esta estructura, "
+        "con estos encabezados literales:\n\n"
         "🎙️ *RESUMEN EJECUTIVO Y CONTEXTO DEL DÍA*\n"
-        "(2 a 4 frases explicando en términos simples qué pasó hoy en los mercados, sin tecnicismos.)\n\n"
+        "(2 a 3 párrafos breves explicando en términos simples qué pasó hoy en los mercados, sin tecnicismos.)\n\n"
         "💡 *ANÁLISIS Y ORIENTACIÓN POR ACTIVO*\n"
         "(Para CADA uno de los 5 activos, en este orden exacto: Oro, Petróleo WTI, Gas Natural, Índice Dólar, "
         "Bitcoin. Para cada activo incluye: el nombre en negrita, el Estado del gráfico (alza, baja o "
         "consolidación), una explicación del RSI en palabras simples —por ejemplo 'RSI en 28: está en "
         "sobreventa/muy barato, potencial rebote'— y una línea '¿Qué hacer hoy?' con una recomendación táctica "
-        "breve y prudente para principiantes, como 'Esperar confirmación', 'Zona de compra con prudencia', "
+        "puntual y prudente para principiantes, como 'Esperar confirmación', 'Zona de compra con prudencia', "
         "'Mantener cautela' o 'Tomar ganancias'.)\n\n"
         "🚨 *ALERTAS DESTACADAS DEL DÍA*\n"
         "(Presenta en lenguaje simple las alertas automáticas listadas arriba. Si la lista dice 'Ninguna', "
         "explica brevemente que hoy fue un día tranquilo. No inventes alertas que no estén en la lista.)\n\n"
         "🎯 *CONCLUSIÓN Y CONSEJO OPERATIVO DEL DÍA*\n"
         "(1 a 2 frases de cierre con un consejo operativo general y motivador para hoy.)\n\n"
-        "Reglas de tono y contenido: español neutro, tono cercano, motivador, didáctico y muy amigable, como "
-        "hablándole a un amigo que recién está aprendiendo a invertir. No repitas los números crudos sin "
+        "Reglas de formato — MUY IMPORTANTE: este texto se envía a Telegram con parse_mode='Markdown' (el modo "
+        "Markdown clásico de Telegram, NO el estándar de GitHub/CommonMark). Para negrita usa UN SOLO asterisco "
+        "a cada lado, por ejemplo *Oro*, nunca dos asteriscos (**Oro** no se renderiza en Telegram y queda roto). "
+        "No uses encabezados con '#', no uses tablas, no uses listas con '-' o '*' al inicio de línea.\n\n"
+        "Reglas de tono y contenido: español neutro, tono cercano, motivador, didáctico y muy amigable, directo, "
+        "como hablándole a un amigo que recién está aprendiendo a invertir. No repitas los números crudos sin "
         "interpretarlos. No uses tecnicismos sin explicarlos de inmediato. No agregues secciones adicionales ni "
         "texto antes o después de las 4 secciones pedidas. Aclara que esto es contenido educativo y no una "
         "recomendación de inversión personalizada."
@@ -295,7 +304,8 @@ def generar_analisis_ia(fecha_hoy, metricas, alertas):
                 "Eres el analista de mercado del grupo de Telegram 'Panel inversiones'. Escribes en español "
                 "neutro, con un tono cálido, cercano, didáctico, motivador y muy amigable, pensando en "
                 "inversionistas principiantes que necesitan orientación práctica y clara, no jerga técnica. "
-                "Sigues al pie de la letra la estructura y los encabezados que te indique el usuario."
+                "Sigues al pie de la letra la estructura, los encabezados y las reglas de formato Markdown que "
+                "te indique el usuario, porque el texto se envía directo a la API de Telegram."
             ),
             messages=[{"role": "user", "content": prompt_usuario}],
         )
@@ -312,22 +322,19 @@ def generar_analisis_ia(fecha_hoy, metricas, alertas):
 
 
 # ---------------------------------------------------------------------------
-# Generación del dashboard web (index.html + Chart.js)
+# Reporte 2: Dashboard web (index.html + Chart.js)
 # ---------------------------------------------------------------------------
 
 def _convertir_markdown_simple(texto):
-    """Convierte **negritas** de Markdown a <strong> sobre texto ya escapado como HTML."""
+    """Convierte *negritas* del Markdown clásico de Telegram (un asterisco) a <strong>, sobre texto ya escapado."""
     escapado = html.escape(texto, quote=True)
-    con_negritas = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escapado)
+    con_negritas = re.sub(r"\*(.+?)\*", r"<strong>\1</strong>", escapado)
     parrafos = [p.strip() for p in con_negritas.split("\n\n") if p.strip()]
     return "".join(f"<p>{p.replace(chr(10), '<br>')}</p>" for p in parrafos)
 
 
 def render_resumen_ia_html(texto_ia):
-    """Divide el texto generado por Claude (o el de respaldo) en sus 4 secciones y las renderiza en HTML."""
-    if not texto_ia:
-        return "<p>No se pudo generar el análisis con IA hoy. Revisa los datos en las tarjetas de activos.</p>"
-
+    """Divide el texto generado por Claude en sus 4 secciones y las renderiza como HTML limpio (sin asteriscos)."""
     patron_headers = "|".join(re.escape(h) for h in SECCIONES_IA)
     partes = re.split(f"({patron_headers})", texto_ia)
 
@@ -351,6 +358,36 @@ def render_resumen_ia_html(texto_ia):
             i += 1
 
     return "".join(bloques)
+
+
+def construir_resumen_respaldo_html(metricas, alertas):
+    """Respaldo para la WEB: HTML limpio construido directamente, sin asteriscos ni sintaxis Markdown.
+
+    Se usa únicamente cuando la API de Claude no está disponible o falló — es un camino
+    totalmente independiente del respaldo de Telegram (que sí usa Markdown, porque Telegram lo necesita).
+    """
+    filas_activos = "".join(
+        f'<p><strong>{html.escape(m["nombre"])}</strong>: {html.escape(_descripcion_estado(m))}. '
+        f'¿Qué hacer hoy? {html.escape(calcular_accion_recomendada(m["var_pct"], m["rsi"])[0])}.</p>'
+        for m in metricas
+    )
+    bloque_alertas = (
+        "".join(f"<p>{html.escape(a)}</p>" for a in alertas)
+        if alertas else "<p>Hoy no se registraron movimientos ni niveles de RSI extremos.</p>"
+    )
+
+    return (
+        '<div class="ia-seccion">'
+        '<h3>Resumen ejecutivo y contexto del día</h3>'
+        '<p>No se pudo generar el análisis con IA hoy; este es un resumen automático con los datos del día.</p>'
+        '</div>'
+        f'<div class="ia-seccion"><h3>Análisis y orientación por activo</h3>{filas_activos}</div>'
+        f'<div class="ia-seccion"><h3>Alertas destacadas del día</h3>{bloque_alertas}</div>'
+        '<div class="ia-seccion">'
+        '<h3>Conclusión y consejo operativo del día</h3>'
+        '<p>Revisa los datos con calma y, ante cualquier duda, evita decisiones apresuradas.</p>'
+        '</div>'
+    )
 
 
 def construir_panel_alertas_html(alertas):
@@ -420,6 +457,38 @@ def construir_tarjeta_html(m):
       </div>
     </article>
     """
+
+
+def construir_tabla_html(metricas):
+    """Tabla técnica comparativa de indicadores para los 5 activos."""
+    filas = []
+    for m in metricas:
+        accion_texto, _ = calcular_accion_recomendada(m['var_pct'], m['rsi'])
+        var_class = "delta-up" if m['var_pct'] >= 0 else "delta-down"
+        filas.append(
+            "<tr>"
+            f"<td>{html.escape(m['nombre'])}</td>"
+            f"<td class=\"ticker-cell\">{html.escape(m['ticker'])}</td>"
+            f"<td class=\"num\">${m['precio']:,.2f}</td>"
+            f"<td class=\"num {var_class}\">{m['var_pct']:+.2f}%</td>"
+            f"<td class=\"num\">{m['rsi']:.1f}</td>"
+            f"<td class=\"num\">${m['sma20']:,.2f}</td>"
+            f"<td class=\"num\">${m['sma200']:,.2f}</td>"
+            f"<td>{html.escape(accion_texto)}</td>"
+            "</tr>"
+        )
+
+    return (
+        '<div class="table-wrap">'
+        '<table class="tabla-comparativa">'
+        '<thead><tr>'
+        '<th>Activo</th><th>Ticker</th><th>Precio</th><th>Var. %</th>'
+        '<th>RSI (14)</th><th>SMA 20</th><th>SMA 200</th><th>Acción recomendada</th>'
+        '</tr></thead>'
+        f'<tbody>{"".join(filas)}</tbody>'
+        '</table>'
+        '</div>'
+    )
 
 
 PLANTILLA_HTML = """<!doctype html>
@@ -540,6 +609,24 @@ PLANTILLA_HTML = """<!doctype html>
   .accion-hold .accion-texto { color: var(--ink-secondary); }
   .chart-wrap { position: relative; height: 260px; margin-top: 14px; }
   .chart-wrap-rsi { height: 200px; }
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .tabla-comparativa { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  .tabla-comparativa th, .tabla-comparativa td { padding: 12px 14px; border-bottom: 1px solid var(--hairline); text-align: left; }
+  .tabla-comparativa tbody tr:last-child td { border-bottom: none; }
+  .tabla-comparativa thead th {
+    color: var(--ink-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: .03em;
+  }
+  .tabla-comparativa td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-secondary); }
+  .tabla-comparativa td.ticker-cell { color: var(--ink-muted); }
   footer {
     text-align: center;
     color: var(--ink-muted);
@@ -573,6 +660,11 @@ PLANTILLA_HTML = """<!doctype html>
       <div class="cards-grid">
         __TARJETAS_HTML__
       </div>
+    </section>
+
+    <section>
+      <h2>📋 Tabla comparativa de indicadores</h2>
+      __TABLA_HTML__
     </section>
   </main>
 
@@ -655,12 +747,11 @@ PLANTILLA_HTML = """<!doctype html>
 """
 
 
-def generar_pagina_web(fecha_hoy, metricas, alertas, resumen_ia_texto, datos_por_activo):
-    os.makedirs(CARPETA_SITIO, exist_ok=True)
-
-    resumen_html = render_resumen_ia_html(resumen_ia_texto)
+def generar_pagina_web(fecha_hoy, metricas, alertas, resumen_html, datos_por_activo):
+    """Construye index.html en la raíz del repo a partir de un resumen ya renderizado en HTML."""
     alertas_html = construir_panel_alertas_html(alertas)
     tarjetas_html = "".join(construir_tarjeta_html(m) for m in metricas)
+    tabla_html = construir_tabla_html(metricas)
 
     datos_chart = {}
     for nombre, (ticker, data) in datos_por_activo.items():
@@ -682,6 +773,7 @@ def generar_pagina_web(fecha_hoy, metricas, alertas, resumen_ia_texto, datos_por
         .replace("__ALERTAS_HTML__", alertas_html)
         .replace("__RESUMEN_HTML__", resumen_html)
         .replace("__TARJETAS_HTML__", tarjetas_html)
+        .replace("__TABLA_HTML__", tabla_html)
         .replace("__DATOS_JSON__", datos_json)
     )
 
@@ -758,15 +850,21 @@ def generar_reporte():
     df_final.to_csv(ARCHIVO_CSV, index=False)
     print(f"✅ Archivo '{ARCHIVO_CSV}' actualizado.")
 
-    # 2. Análisis didáctico con IA (con respaldo si falla o no hay API key)
-    mensaje = generar_analisis_ia(fecha_hoy, metricas, alertas_totales)
-    if not mensaje:
-        mensaje = construir_mensaje_respaldo(metricas, alertas_totales)
+    # 2. Análisis con IA: un mismo llamado a Claude alimenta los dos reportes.
+    #    Si la IA falla, cada canal usa SU PROPIO respaldo (Markdown para Telegram, HTML limpio para la web).
+    texto_ia = generar_analisis_ia(fecha_hoy, metricas, alertas_totales)
 
+    if texto_ia:
+        mensaje_telegram = texto_ia
+        resumen_web_html = render_resumen_ia_html(texto_ia)
+    else:
+        mensaje_telegram = construir_mensaje_respaldo(metricas, alertas_totales)
+        resumen_web_html = construir_resumen_respaldo_html(metricas, alertas_totales)
+
+    # 3. REPORTE 1 — Telegram: mensaje + gráficos PNG
     encabezado = f"📊 *ANÁLISIS DE MERCADO DIARIO — PANEL INVERSIONES* ({fecha_hoy})\n\n"
-    enviar_telegram_mensaje(encabezado + mensaje)
+    enviar_telegram_mensaje(encabezado + mensaje_telegram)
 
-    # 3. Gráficos técnicos (PNG) de los 5 activos, enviados a Telegram
     carpeta_temp = tempfile.mkdtemp(prefix="graficos_")
     try:
         for nombre, (ticker, data) in datos_por_activo.items():
@@ -775,8 +873,8 @@ def generar_reporte():
     finally:
         shutil.rmtree(carpeta_temp, ignore_errors=True)
 
-    # 4. Dashboard web (index.html con Chart.js) para publicar en GitHub Pages
-    generar_pagina_web(fecha_hoy, metricas, alertas_totales, mensaje, datos_por_activo)
+    # 4. REPORTE 2 — Dashboard web (index.html con Chart.js) para GitHub Pages
+    generar_pagina_web(fecha_hoy, metricas, alertas_totales, resumen_web_html, datos_por_activo)
 
 
 if __name__ == "__main__":
