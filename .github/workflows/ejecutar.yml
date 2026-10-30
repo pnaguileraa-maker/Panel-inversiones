@@ -1,4 +1,4 @@
-name: Reporte Diario Panel Inversiones
+name: Seguimiento Intradía Panel Inversiones
 
 permissions:
   contents: read
@@ -7,14 +7,29 @@ permissions:
 
 on:
   schedule:
-    # Chile cambia de huso horario dos veces al año (UTC-3 en horario de verano,
-    # UTC-4 en horario de invierno). Se programan ambos cron y el job
-    # "verificar-horario" decide cuál corresponde usando la hora real de Chile,
-    # para que SIEMPRE llegue cerca de las 09:40-10:00 AM local y nunca se
-    # envíe el reporte dos veces el mismo día.
-    - cron: '40 12 * * *'  # 09:40 Chile en horario de verano (UTC-3, aprox. sep-abr)
-    - cron: '40 13 * * *'  # 09:40 Chile en horario de invierno (UTC-4, aprox. abr-sep)
-  workflow_dispatch: {}
+    # Ventana única en UTC que cubre el horario 8:00-14:00 Chile en AMBOS husos:
+    # verano (UTC-3) necesita UTC 11-17, invierno (UTC-4) necesita UTC 12-18.
+    # La unión es UTC 11-18; el job "verificar-horario" filtra en cada disparo
+    # usando la hora REAL de Chile, así nunca se desincroniza con el cambio de
+    # horario ni se duplica el envío. Día de la semana 1-5 = lunes a viernes
+    # (seguro de usar en UTC porque las 11-18 UTC ya caen siempre DESPUÉS de la
+    # medianoche de Chile, así que el día de la semana en UTC y en Chile coinciden
+    # en toda esa ventana).
+    - cron: '10 11-18 * * 1-5'
+    # Autodiagnóstico diario automático de Telegram (datos simulados), antes de que
+    # abra la ventana de seguimiento intradía — no requiere ninguna acción manual.
+    # También restringido a lunes-viernes: no tiene sentido probarlo en fin de
+    # semana, cuando tampoco corre el seguimiento intradía real.
+    - cron: '45 10 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'Tipo de ejecución'
+        type: choice
+        options:
+          - reporte
+          - diagnostico
+        default: reporte
   repository_dispatch:
     types: [ejecutar-reporte]
 
@@ -28,24 +43,36 @@ jobs:
     outputs:
       debe_ejecutar: ${{ steps.chequeo.outputs.debe_ejecutar }}
     steps:
-      - name: Comprobar si corresponde al horario actual de Chile
+      - name: Comprobar si la hora actual en Chile está dentro de 8:00-14:00
         id: chequeo
         run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "45 10 * * 1-5" ]; then
+            echo "Disparo del cron de autodiagnóstico — el seguimiento horario no corresponde aquí."
+            echo "debe_ejecutar=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.modo }}" = "diagnostico" ]; then
+            echo "Disparo manual en modo diagnóstico — el seguimiento horario no corresponde aquí."
+            echo "debe_ejecutar=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "Disparo manual (${{ github.event_name }}) — se ejecuta siempre."
             echo "debe_ejecutar=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          HORA_CHILE=$(TZ='America/Santiago' date +%H)
+          HORA_CHILE=$(TZ='America/Santiago' date +%-H)
           MIN_CHILE=$(TZ='America/Santiago' date +%M)
           echo "Hora actual en Chile: ${HORA_CHILE}:${MIN_CHILE}"
 
-          if [ "$HORA_CHILE" = "09" ]; then
-            echo "Horario correcto en Chile — se ejecuta el reporte."
+          if [ "$HORA_CHILE" -ge 8 ] && [ "$HORA_CHILE" -le 14 ]; then
+            echo "Dentro de la ventana de seguimiento intradía (8:00-14:00 Chile) — se ejecuta."
             echo "debe_ejecutar=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Son las ${HORA_CHILE} hrs en Chile — este disparo corresponde al otro horario estacional (verano/invierno). Se omite para no duplicar el envío."
+            echo "Son las ${HORA_CHILE} hrs en Chile — fuera de 8:00-14:00 (disparo del otro huso estacional). Se omite."
             echo "debe_ejecutar=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -69,7 +96,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Ejecutar análisis diario (Telegram + dashboard web)
+      - name: Ejecutar seguimiento intradía (Telegram + dashboard web)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -92,6 +119,32 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
+
+  autodiagnostico-telegram:
+    if: >
+      (github.event_name == 'schedule' && github.event.schedule == '45 10 * * 1-5') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.modo == 'diagnostico')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ejecutar autodiagnóstico de Telegram (datos simulados, sin pasos manuales)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python analisis_diario.py --test
 
   publicar-pages:
     needs: ejecutar-reporte
