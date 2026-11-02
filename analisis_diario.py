@@ -75,6 +75,20 @@ SP1_ATR_FACTOR = 0.55   # paso más corto para la primera toma parcial (200-300 
 PASO_ATR_FACTOR = 0.65  # pasos siguientes SP2-SP5 (200-400 "puntos" cada uno)
 NUM_STOP_PROFITS = 5
 
+# --- Parámetros del patrón chartista Doble Suelo (W) / Doble Techo (M) ---
+VENTANA_EXTREMO_PATRON = 3     # barras a cada lado para confirmar un mínimo/máximo local
+VELAS_PATRON_DOBLE = 40        # barras recientes (15M/1H) donde se busca el patrón
+TOLERANCIA_DOBLE_PCT = 0.004   # 0.4%: cuán "similares" deben ser los dos mínimos/máximos
+BONO_PATRON_DOBLE = 15         # bonificación de probabilidad al confirmarse el patrón (+15%)
+
+# --- Parámetros del sistema de anticipación temprana (pre-alerta inminente) ---
+# Distancia máxima al nivel de gatillo (línea de cuello del patrón W/M, o soporte/
+# resistencia en su defecto) para avisar que la activación está estimada en 5-10 mins.
+DISTANCIA_INMINENTE_PCT = 0.0020  # 0.20% del precio actual
+
+# --- Parámetros del contexto macro/noticias (yfinance Ticker.news -> narrativa IA) ---
+MAX_TITULARES_NOTICIAS = 3
+
 LIMITE_TELEGRAM = 4000
 
 ETIQUETAS_FACTOR = {
@@ -279,10 +293,79 @@ def _rebote_tecnico(df, direccion):
     return max(candidatos, key=lambda c: c[0])
 
 
+def _detectar_extremos_locales(serie, ventana, modo):
+    """Devuelve las posiciones (índices enteros, base 0) que son mínimos o máximos
+    locales dentro de `serie`: un punto es extremo local si es el valor más bajo/alto
+    dentro de una ventana de `ventana` barras a cada lado."""
+    posiciones = []
+    valores = serie.values
+    n = len(valores)
+    for i in range(ventana, n - ventana):
+        tramo = valores[i - ventana: i + ventana + 1]
+        if modo == "min" and valores[i] == tramo.min():
+            posiciones.append(i)
+        elif modo == "max" and valores[i] == tramo.max():
+            posiciones.append(i)
+    return posiciones
+
+
+def detectar_patron_doble(df, direccion):
+    """Busca un Doble Suelo ('W', dirección BUY) o Doble Techo ('M', dirección SELL) en
+    las últimas VELAS_PATRON_DOBLE barras: dos mínimos (o máximos) de precio similares
+    entre sí (dentro de TOLERANCIA_DOBLE_PCT) con divergencia del RSI(14) entre ambos —
+    el segundo extremo debe mostrar un RSI más favorable que el primero aunque el precio
+    repita o empeore el nivel, la señal clásica de agotamiento de la presión vendedora
+    (W) o compradora (M). Devuelve (detectado, nivel_cuello, etiqueta); nivel_cuello es
+    el precio de ruptura (línea de cuello) que confirma el patrón."""
+    minimo_barras = VENTANA_EXTREMO_PATRON * 2 + 10
+    if df is None or len(df) < minimo_barras or "RSI_14" not in df.columns:
+        return False, None, None
+
+    velas = df.tail(VELAS_PATRON_DOBLE).reset_index(drop=True)
+    if velas["RSI_14"].isna().any():
+        return False, None, None
+
+    if direccion == "BUY":
+        columna_precio, modo = "Low", "min"
+    else:
+        columna_precio, modo = "High", "max"
+
+    posiciones = _detectar_extremos_locales(velas[columna_precio], VENTANA_EXTREMO_PATRON, modo)
+    if len(posiciones) < 2:
+        return False, None, None
+
+    pos_1, pos_2 = posiciones[-2], posiciones[-1]
+    if pos_2 - pos_1 < VENTANA_EXTREMO_PATRON * 2:
+        return False, None, None  # demasiado juntos para ser dos "patas" distintas del patrón
+
+    precio_1 = float(velas[columna_precio].iloc[pos_1])
+    precio_2 = float(velas[columna_precio].iloc[pos_2])
+    if precio_1 == 0 or abs(precio_2 - precio_1) / abs(precio_1) > TOLERANCIA_DOBLE_PCT:
+        return False, None, None  # los dos extremos no son "similares"
+
+    rsi_1 = float(velas["RSI_14"].iloc[pos_1])
+    rsi_2 = float(velas["RSI_14"].iloc[pos_2])
+
+    if direccion == "BUY":
+        if rsi_2 <= rsi_1:
+            return False, None, None  # sin divergencia alcista: el RSI no mejoró en el 2º mínimo
+        nivel_cuello = float(velas["High"].iloc[pos_1:pos_2 + 1].max())
+        etiqueta = "Doble Suelo (W) con divergencia alcista de RSI"
+    else:
+        if rsi_2 >= rsi_1:
+            return False, None, None  # sin divergencia bajista: el RSI no empeoró en el 2º máximo
+        nivel_cuello = float(velas["Low"].iloc[pos_1:pos_2 + 1].min())
+        etiqueta = "Doble Techo (M) con divergencia bajista de RSI"
+
+    return True, nivel_cuello, etiqueta
+
+
 def calcular_probabilidad(datos_tf, direccion):
     """Puntaje de confluencia 0-100% para la dirección ('BUY' o 'SELL') evaluada.
-    Devuelve el total, el detalle por componente (para detectar qué factor falta) y la
-    etiqueta de la estructura de rebote técnico detectada (EMA200/Banda/Soporte/Resistencia)."""
+    Devuelve el total, el detalle por componente (para detectar qué factor falta), la
+    etiqueta de la estructura de rebote técnico detectada (EMA200/Banda/Soporte/
+    Resistencia), y si se detectó un patrón Doble Suelo/Techo (W/M) junto con su nivel
+    de cuello (línea de ruptura) y etiqueta."""
     d1 = datos_tf.get("1D")
     h4 = datos_tf.get("4H")
     h1 = datos_tf.get("1H")
@@ -322,10 +405,19 @@ def calcular_probabilidad(datos_tf, direccion):
         "estructura": (puntaje_estructura, 15),
         "confluencia": (puntaje_confluencia, 20),
     }
-    total = sum(valor for valor, _ in componentes.values())
+
+    # Patrón chartista Doble Suelo (W) / Doble Techo (M) en 1H o 15M: bonificación
+    # adicional de BONO_PATRON_DOBLE puntos porcentuales cuando se confirma (se evalúa
+    # primero 1H y, si no confirma, 15M).
+    patron_detectado, nivel_cuello_patron, etiqueta_patron = detectar_patron_doble(h1, direccion)
+    if not patron_detectado:
+        patron_detectado, nivel_cuello_patron, etiqueta_patron = detectar_patron_doble(m15, direccion)
+    bono_patron = BONO_PATRON_DOBLE if patron_detectado else 0.0
+
+    total = sum(valor for valor, _ in componentes.values()) + bono_patron
     total = round(min(max(total, 0.0), 100.0), 1)
 
-    return total, componentes, estructura_label
+    return total, componentes, estructura_label, patron_detectado, nivel_cuello_patron, etiqueta_patron
 
 
 def factor_faltante(componentes):
@@ -412,13 +504,19 @@ def generar_senal(nombre, ticker, datos_tf):
     if resistencia is None:
         resistencia = _ultimo(m15, "Maximo_20")
 
-    prob_buy, comp_buy, estructura_buy = calcular_probabilidad(datos_tf, "BUY")
-    prob_sell, comp_sell, estructura_sell = calcular_probabilidad(datos_tf, "SELL")
+    prob_buy, comp_buy, estructura_buy, patron_buy, cuello_buy, etiqueta_patron_buy = calcular_probabilidad(
+        datos_tf, "BUY"
+    )
+    prob_sell, comp_sell, estructura_sell, patron_sell, cuello_sell, etiqueta_patron_sell = calcular_probabilidad(
+        datos_tf, "SELL"
+    )
 
     if prob_buy >= prob_sell:
         direccion, probabilidad, componentes, estructura_label = "BUY", prob_buy, comp_buy, estructura_buy
+        patron_detectado, nivel_cuello_patron, etiqueta_patron = patron_buy, cuello_buy, etiqueta_patron_buy
     else:
         direccion, probabilidad, componentes, estructura_label = "SELL", prob_sell, comp_sell, estructura_sell
+        patron_detectado, nivel_cuello_patron, etiqueta_patron = patron_sell, cuello_sell, etiqueta_patron_sell
 
     if estructura_label is None:
         estructura_label = "Confluencia técnica general (sin rebote puntual detectado)"
@@ -426,6 +524,18 @@ def generar_senal(nombre, ticker, datos_tf):
     emoji, etiqueta_estado, tag_operativo, alta_conviccion = clasificar(direccion, probabilidad)
     sl, sps = calcular_niveles_intradia(precio, atr, direccion, soporte, resistencia)
     falta = factor_faltante(componentes)
+
+    # Sistema de anticipación temprana: distancia al nivel de gatillo (línea de cuello
+    # del patrón W/M si se detectó; soporte/resistencia estructural en su defecto).
+    zona_activacion = nivel_cuello_patron
+    if zona_activacion is None:
+        zona_activacion = soporte if direccion == "BUY" else resistencia
+
+    distancia_pct_activacion = None
+    pre_alerta_inminente = False
+    if zona_activacion is not None and not pd.isna(zona_activacion) and precio > 0:
+        distancia_pct_activacion = abs(precio - zona_activacion) / precio
+        pre_alerta_inminente = distancia_pct_activacion < DISTANCIA_INMINENTE_PCT and probabilidad >= PROB_ALERTA
 
     sesgo_1d = _sesgo_ema(d1)
     sesgo_1h = _sesgo_ema(h1)
@@ -466,6 +576,9 @@ def generar_senal(nombre, ticker, datos_tf):
         "distancia_sl": abs(precio - sl), "factor_faltante": falta,
         "ema_bias_texto": ema_bias_texto, "macd_texto": macd_texto,
         "rsi_valor": rsi_valor, "rsi_estado": rsi_estado,
+        "patron_label": etiqueta_patron, "zona_activacion": zona_activacion,
+        "distancia_pct_activacion": distancia_pct_activacion,
+        "pre_alerta_inminente": pre_alerta_inminente,
     }
 
 
@@ -571,26 +684,65 @@ def enviar_telegram_foto(ruta_imagen, caption=""):
 
 
 # ---------------------------------------------------------------------------
+# Contexto macro/noticias (yfinance) — solo para los activos de alta convicción,
+# misma política de costo que la narrativa de IA: no se consulta sin señal accionable.
+# ---------------------------------------------------------------------------
+
+def obtener_titulares_noticias(ticker, limite=MAX_TITULARES_NOTICIAS):
+    """Extrae hasta `limite` titulares recientes de yfinance (Ticker.news) para un
+    ticker. Tolera los dos esquemas que ha usado yfinance para este campo: una lista
+    plana de dicts con 'title', o una lista de dicts anidados bajo la clave 'content'."""
+    try:
+        noticias = yf.Ticker(ticker).news or []
+    except Exception as e:
+        print(f"⚠️ No se pudieron obtener noticias de {ticker}: {e}")
+        return []
+
+    titulares = []
+    for item in noticias[:limite]:
+        contenido = item.get("content", item) if isinstance(item, dict) else {}
+        titulo = contenido.get("title") if isinstance(contenido, dict) else None
+        if titulo:
+            titulares.append(titulo)
+    return titulares
+
+
+def obtener_contexto_macro(altos):
+    """Obtiene los titulares de noticias recientes de cada activo de alta convicción
+    (>=70%), para que la narrativa de la IA evalúe si el entorno macro/geopolítico
+    apoya la dirección del trade."""
+    noticias_por_activo = {}
+    for r in altos:
+        noticias_por_activo[r["nombre"]] = obtener_titulares_noticias(r["ticker"])
+    return noticias_por_activo
+
+
+# ---------------------------------------------------------------------------
 # Narrativa con IA (Claude) — solo para los activos de alta convicción (>=70%),
 # para no gastar llamadas en horas donde el mercado no da señales accionables.
 # ---------------------------------------------------------------------------
 
-def construir_contexto_senales(resultados):
+def construir_contexto_senales(resultados, noticias_por_activo=None):
+    noticias_por_activo = noticias_por_activo or {}
     lineas = []
     for r in resultados:
+        titulares = noticias_por_activo.get(r["nombre"]) or []
+        texto_noticias = " | ".join(titulares) if titulares else "sin titulares disponibles"
         lineas.append(
             f"- {r['nombre']} ({r['ticker']}): dirección={r['direccion']}, "
             f"probabilidad={r['probabilidad']:.0f}%, estado={r['etiqueta_estado']}, "
             f"estructura del rebote={r['estructura_label']}, "
+            f"patrón técnico={r['patron_label'] or 'sin patrón Doble Suelo/Techo confirmado'}, "
             f"precio=${r['precio']:,.2f}, SL=${r['sl']:,.2f}, "
             f"sesgo EMA200(1D/1H)={r['ema_bias_texto']}, MACD(1H)={r['macd_texto']}, "
             f"RSI={r['rsi_valor']:.1f} ({r['rsi_estado']}), "
-            f"condición que falta para gatillar={r['factor_faltante']}"
+            f"condición que falta para gatillar={r['factor_faltante']}, "
+            f"titulares de noticias recientes={texto_noticias}"
         )
     return "\n".join(lineas)
 
 
-def generar_narrativas_ia(fecha_hoy, hora_texto, altos):
+def generar_narrativas_ia(fecha_hoy, hora_texto, altos, noticias_por_activo=None):
     if not altos:
         print("ℹ️ Ningún activo con probabilidad >= 70% esta hora; se omite el llamado a la IA.")
         return {}
@@ -598,7 +750,7 @@ def generar_narrativas_ia(fecha_hoy, hora_texto, altos):
         print("⚠️ ANTHROPIC_API_KEY no configurada; se omite la narrativa con IA.")
         return {}
 
-    contexto = construir_contexto_senales(altos)
+    contexto = construir_contexto_senales(altos, noticias_por_activo)
     nombres = ", ".join(f'"{r["nombre"]}"' for r in altos)
 
     prompt_usuario = (
@@ -614,7 +766,12 @@ def generar_narrativas_ia(fecha_hoy, hora_texto, altos):
         "BUSCAR REBOTE EN COMPRA/VENTA' (70-74%), acláralo: aún no es una orden directa, hay que confirmar el "
         "gatillo usando la 'condición que falta' que te entrego, redactada en lenguaje simple. Si el estado "
         "es una ORDEN DIRECTA (>=75%), confirma que la confluencia y el rebote ya son suficientes para "
-        "ejecutar. NO incluyas los precios de entrada, SL ni SP (esos ya se muestran aparte en el mensaje). "
+        "ejecutar. Si el 'patrón técnico' indica un Doble Suelo (W) o Doble Techo (M) confirmado, "
+        "menciónalo como refuerzo de la señal. Cada activo incluye 'titulares de noticias recientes' (puede "
+        "venir vacío): si hay titulares, evalúa en una frase breve dentro del mismo párrafo si el entorno "
+        "geopolítico/macro actual apoya o contradice la dirección del trade; si dice 'sin titulares "
+        "disponibles', omite esa mención por completo y NO inventes noticias que no te entregué. NO incluyas "
+        "los precios de entrada, SL ni SP (esos ya se muestran aparte en el mensaje). "
         "NO agregues encabezados, viñetas ni ninguna etiqueta operativa al final (eso se agrega "
         "automáticamente después). Aclara siempre que es contenido educativo, no asesoría financiera "
         "personalizada.\n\n"
@@ -677,12 +834,47 @@ def _formato_precio(valor):
 
 
 def construir_titulo(r):
-    """Título obligatorio por activo: la orden operativa (COMPRAR/VENDER/ESPERAR) nunca
-    queda ambigua, sin importar si el activo entra en la alerta destacada o en el resumen."""
+    """Título obligatorio por activo, en la primera línea del bloque: la orden
+    operativa (COMPRAR/VENDER/ESPERAR) nunca queda ambigua. Si el sistema de
+    anticipación temprana detecta que el precio está a menos de DISTANCIA_INMINENTE_PCT
+    del nivel de gatillo (línea de cuello del patrón W/M, o soporte/resistencia en su
+    defecto) con probabilidad >= 70%, el título se reemplaza por la pre-alerta inminente,
+    declarando explícitamente COMPRA (LONG) o VENTA (SHORT)."""
+    if r.get("pre_alerta_inminente"):
+        if r["direccion"] == "BUY":
+            return f"⏳ *PRE-ALERTA INMINENTE (5-10 MINS): PREPARAR COMPRA (LONG) | {r['nombre'].upper()}*"
+        return f"⏳ *PRE-ALERTA INMINENTE (5-10 MINS): PREPARAR VENTA (SHORT) | {r['nombre'].upper()}*"
     return f"{r['emoji']} *{r['etiqueta_estado']} | {r['nombre'].upper()}*"
 
 
+def construir_bloque_pre_alerta_inminente(r):
+    """Cuerpo dedicado y determinístico (no depende de la narrativa IA) para la
+    pre-alerta inminente: la dirección (COMPRAR/VENDER) queda explícita en cada línea
+    accionable, con el precio de gatillo exacto, los puntos que faltan para romperlo, y
+    la instrucción operativa literal pedida."""
+    accion = "COMPRAR" if r["direccion"] == "BUY" else "VENDER"
+    accion_corta = "COMPRA" if r["direccion"] == "BUY" else "VENTA"
+    puntos_faltantes = abs(r["precio"] - r["zona_activacion"])
+    gatillo = _formato_precio(r["zona_activacion"])
+
+    return "\n".join([
+        construir_titulo(r),
+        f"🎯 *Acción Requerida:* {accion}",
+        f"📍 *Precio de Gatillo:* {gatillo} _(Faltan {puntos_faltantes:,.2f} pts / ~5-10 min)_",
+        f"🚀 *Entrada Estimada:* {_formato_precio(r['precio'])}",
+        f"🛡️ *SL Proyectado:* {_formato_precio(r['sl'])} _(Rango acotado 200-400 pts)_",
+        f"🎯 *SP 1 a SP 5 Proyectados:* {_formato_precio(r['sps'][0])} al {_formato_precio(r['sps'][-1])}",
+        f"💬 *Instrucción Operativa:* \"Tener la plataforma abierta. Si el precio rompe "
+        f"{gatillo}, ingresar inmediatamente en {accion_corta}\".",
+    ])
+
+
 def construir_bloque_alerta(r, narrativas):
+    # La pre-alerta inminente tiene un cuerpo propio y autocontenido (formato estricto
+    # pedido), distinto del bloque normal de alta convicción.
+    if r.get("pre_alerta_inminente"):
+        return construir_bloque_pre_alerta_inminente(r)
+
     narrativa = narrativas.get(r["nombre"]) or narrativa_instruccion_respaldo(r)
     # La narrativa puede venir de la IA (texto libre no controlado): se escapa antes de
     # insertarla en el Markdown del mensaje para que Telegram nunca la rechace por
@@ -705,8 +897,10 @@ def construir_bloque_alerta(r, narrativas):
     lineas += [
         "",
         f"📊 *Confluencia Técnica:* EMA200 {r['ema_bias_texto']} | MACD {r['macd_texto']} | RSI {r['rsi_valor']:.1f}",
-        f"💬 *Instrucción Directa:* _{narrativa} {r['tag_operativo']}_",
     ]
+    if r.get("patron_label"):
+        lineas.append(f"🔎 *Patrón Chartista:* {r['patron_label']} _(bonificación +{BONO_PATRON_DOBLE}% aplicada)_")
+    lineas.append(f"💬 *Instrucción Directa:* _{narrativa} {r['tag_operativo']}_")
     return "\n".join(lineas)
 
 
@@ -847,7 +1041,13 @@ def construir_tarjeta_html(r):
         f'data-slug="{slug}" data-tf="{tf}">{tf}</button>'
         for tf in TIMEFRAMES
     )
-    ribbon = '<div class="alerta-ribbon">🚨 Alta convicción detectada</div>' if r["alta_conviccion"] else ""
+    if r.get("pre_alerta_inminente"):
+        accion_ribbon = "COMPRA" if r["direccion"] == "BUY" else "VENTA"
+        ribbon = f'<div class="alerta-ribbon">⏳ Pre-alerta inminente: preparar {accion_ribbon} (5-10 min)</div>'
+    elif r["alta_conviccion"]:
+        ribbon = '<div class="alerta-ribbon">🚨 Alta convicción detectada</div>'
+    else:
+        ribbon = ""
 
     return f"""
     <article class="asset-card">
@@ -874,6 +1074,7 @@ def construir_tarjeta_html(r):
       <div class="confluencia">
         <div><span class="metric-label">🎯 Sesgo</span><span class="metric-value">{html.escape(r['sesgo_general'])}</span></div>
         <div><span class="metric-label">🔄 Estructura</span><span class="metric-value">{html.escape(r['estructura_label'])}</span></div>
+        <div><span class="metric-label">🔎 Patrón</span><span class="metric-value">{html.escape(r.get('patron_label') or 'Sin patrón confirmado')}</span></div>
         <div><span class="metric-label">EMA200 (1D/1H)</span><span class="metric-value">{html.escape(r['ema_bias_texto'])}</span></div>
         <div><span class="metric-label">MACD (1H)</span><span class="metric-value">{html.escape(r['macd_texto'])}</span></div>
         <div><span class="metric-label">RSI (1H)</span><span class="metric-value">{r['rsi_valor']:.1f} · {html.escape(r['rsi_estado'])}</span></div>
@@ -1214,6 +1415,8 @@ def generar_reporte():
             "EMA_Bias": senal["ema_bias_texto"],
             "MACD_1H": senal["macd_texto"],
             "Factor_Faltante": senal["factor_faltante"],
+            "Patron_Doble": senal["patron_label"] or "Ninguno",
+            "Pre_Alerta_Inminente": senal["pre_alerta_inminente"],
         })
 
     if not resultados:
@@ -1230,9 +1433,12 @@ def generar_reporte():
     df_final.to_csv(ARCHIVO_CSV, index=False)
     print(f"✅ Archivo '{ARCHIVO_CSV}' actualizado.")
 
-    # 2. Narrativa con IA — un único llamado, solo para los activos de alta convicción (>=70%)
+    # 2. Contexto macro/noticias + narrativa con IA — un único llamado, solo para los
+    #    activos de alta convicción (>=70%), para no gastar requests/llamadas en horas
+    #    donde el mercado no da señales accionables.
     altos = [r for r in resultados if r["alta_conviccion"]]
-    narrativas = generar_narrativas_ia(fecha_hoy, hora_texto, altos)
+    noticias_por_activo = obtener_contexto_macro(altos)
+    narrativas = generar_narrativas_ia(fecha_hoy, hora_texto, altos, noticias_por_activo)
     for r in resultados:
         if r["alta_conviccion"]:
             texto = narrativas.get(r["nombre"]) if isinstance(narrativas, dict) else None
@@ -1287,10 +1493,16 @@ def _datos_mock_para_autodiagnostico():
          "rsi_valor": 51.2, "ema_bias_texto": "Mixto (1D Alcista / 1H Bajista)", "macd_texto": "Cruce Bajista"},
         {"nombre": "Petróleo WTI", "ticker": "CL=F", "direccion": "BUY", "probabilidad": 80.0,
          "precio": 61.75, "atr": 0.85, "soporte": 60.90, "resistencia": 62.60,
-         "rsi_valor": 38.4, "ema_bias_texto": "Alcista", "macd_texto": "Cruce Alcista"},
+         "rsi_valor": 38.4, "ema_bias_texto": "Alcista", "macd_texto": "Cruce Alcista",
+         # Escenario adicional: ejercita el patrón chartista W/M y la pre-alerta
+         # inminente (distancia < 0.20% al gatillo) en la prueba real de envío.
+         "patron_label": "Doble Suelo (W) con divergencia alcista de RSI",
+         "zona_activacion": 61.90, "distancia_pct_activacion": 0.0012, "pre_alerta_inminente": True},
         {"nombre": "Gas Natural", "ticker": "NG=F", "direccion": "SELL", "probabilidad": 80.0,
          "precio": 3.12, "atr": 0.09, "soporte": 3.02, "resistencia": 3.22,
-         "rsi_valor": 71.8, "ema_bias_texto": "Bajista", "macd_texto": "Cruce Bajista"},
+         "rsi_valor": 71.8, "ema_bias_texto": "Bajista", "macd_texto": "Cruce Bajista",
+         "patron_label": "Doble Techo (M) con divergencia bajista de RSI",
+         "zona_activacion": 3.11, "distancia_pct_activacion": 0.0032, "pre_alerta_inminente": False},
         {"nombre": "Índice Dólar", "ticker": "UUP", "direccion": "BUY", "probabilidad": 72.0,
          "precio": 27.84, "atr": 0.14, "soporte": 27.60, "resistencia": 28.05,
          "rsi_valor": 44.6, "ema_bias_texto": "Alcista", "macd_texto": "Cruce Alcista"},
@@ -1331,6 +1543,10 @@ def generar_senal_mock(escenario):
         "factor_faltante": ETIQUETAS_FACTOR["confluencia"],
         "ema_bias_texto": escenario["ema_bias_texto"], "macd_texto": escenario["macd_texto"],
         "rsi_valor": rsi_valor, "rsi_estado": rsi_estado,
+        "patron_label": escenario.get("patron_label"),
+        "zona_activacion": escenario.get("zona_activacion"),
+        "distancia_pct_activacion": escenario.get("distancia_pct_activacion"),
+        "pre_alerta_inminente": escenario.get("pre_alerta_inminente", False),
     }
 
 
