@@ -1,7 +1,10 @@
 name: Seguimiento Intradía Panel Inversiones
 
 permissions:
-  contents: read
+  # "write" es necesario para que el job de seguimiento intradía pueda commitear de
+  # vuelta posiciones_abiertas.json (estado de las señales abiertas: entrada/SL/TP),
+  # para que sobreviva entre una ejecución horaria y la siguiente.
+  contents: write
   pages: write
   id-token: write
 
@@ -86,7 +89,10 @@ jobs:
     needs: verificar-horario
     if: needs.verificar-horario.outputs.debe_ejecutar == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 45 min: cubre el reporte normal (~2-3 min) + hasta 35 min de vigilancia intra-hora
+    # (re-chequeo cada 5 min de activos cerca del gatillo), con margen antes de que
+    # dispare el cron de la proxima hora (minuto :10).
+    timeout-minutes: 45
 
     steps:
       - name: Clonar repositorio
@@ -108,6 +114,19 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python analisis_diario.py
+
+      - name: Guardar estado de posiciones abiertas (SL/TP) en el repo
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain posiciones_abiertas.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add posiciones_abiertas.json
+            git commit -m "Actualiza estado de posiciones abiertas [skip ci]"
+            git push
+          else
+            echo "Sin cambios en posiciones_abiertas.json."
+          fi
 
       - name: Subir bitácora actualizada como artefacto
         if: always()

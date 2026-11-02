@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import time
 import html
 import json
 import datetime
@@ -45,6 +46,11 @@ TIMEFRAME_LABELS = {"1D": "Diario", "4H": "4 Horas", "1H": "1 Hora", "15M": "15 
 
 ARCHIVO_CSV = "bitacora_inversiones.csv"
 ARCHIVO_SITIO = "index.html"  # se genera en la raíz del repo (upload-pages-artifact usa path: '.')
+# Estado de las señales abiertas (entrada/SL/SP1-5 por activo), para poder avisar
+# cuando el precio realmente toca el Stop Loss o un Take Profit. Se commitea de vuelta
+# al repo en cada corrida (ver ejecutar.yml) para que sobreviva entre una ejecución
+# horaria y la siguiente.
+ARCHIVO_POSICIONES = "posiciones_abiertas.json"
 
 # --- Parámetros de los indicadores técnicos ---
 EMA_RAPIDA = 50
@@ -85,6 +91,17 @@ BONO_PATRON_DOBLE = 15         # bonificación de probabilidad al confirmarse el
 # Distancia máxima al nivel de gatillo (línea de cuello del patrón W/M, o soporte/
 # resistencia en su defecto) para avisar que la activación está estimada en 5-10 mins.
 DISTANCIA_INMINENTE_PCT = 0.0020  # 0.20% del precio actual
+
+# --- Parámetros de la vigilancia intra-hora (sin agregar un cron nuevo) ---
+# El reporte sigue disparándose una vez por hora; si al terminar algún activo de alta
+# convicción quedó CERCA del gatillo (dentro de esta banda más amplia, pero sin llegar
+# aún al umbral estricto de DISTANCIA_INMINENTE_PCT), el mismo job se queda re-chequeando
+# solo esos activos cada VIGILANCIA_INTERVALO_MIN minutos, hasta VIGILANCIA_DURACION_MIN,
+# y dispara la pre-alerta inminente en el momento exacto en que cruza el umbral — sin
+# esperar al reporte de la próxima hora.
+VIGILANCIA_BANDA_PCT = 0.0060      # 0.60%: banda "cercana" que activa la vigilancia
+VIGILANCIA_INTERVALO_MIN = 5       # minutos entre cada re-chequeo
+VIGILANCIA_DURACION_MIN = 35       # tope de minutos vigilando (deja margen antes de la próxima hora)
 
 # --- Parámetros del contexto macro/noticias (yfinance Ticker.news -> narrativa IA) ---
 MAX_TITULARES_NOTICIAS = 3
@@ -833,6 +850,117 @@ def _formato_precio(valor):
     return f"${valor:,.{decimales}f}"
 
 
+# ---------------------------------------------------------------------------
+# Seguimiento del ciclo de vida de las señales: abre una "posición" por cada activo
+# que cruza a alta convicción, y avisa cuando el precio realmente toca el Stop Loss o
+# un Take Profit — el estado se persiste en ARCHIVO_POSICIONES (commiteado al repo)
+# para sobrevivir entre una ejecución horaria y la siguiente.
+# ---------------------------------------------------------------------------
+
+def cargar_posiciones_abiertas():
+    if not os.path.exists(ARCHIVO_POSICIONES):
+        return {}
+    try:
+        with open(ARCHIVO_POSICIONES, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"⚠️ No se pudo leer '{ARCHIVO_POSICIONES}', se parte de cero: {e}")
+        return {}
+
+
+def guardar_posiciones_abiertas(posiciones):
+    with open(ARCHIVO_POSICIONES, "w", encoding="utf-8") as f:
+        json.dump(posiciones, f, ensure_ascii=False, indent=2)
+
+
+def _evaluar_eventos_posicion(posicion, precio_actual):
+    """Compara el precio actual contra el SL y los SP1-5 (Take Profits) de una
+    posición abierta. Devuelve una lista de eventos nuevos detectados: 'SL' si se tocó
+    el Stop Loss (cierra la posición de inmediato, sin evaluar TPs), o 'TP{n}' por cada
+    Take Profit nuevo alcanzado (TP5 también cierra la posición, como los anteriores)."""
+    direccion = posicion["direccion"]
+    sl = posicion["sl"]
+    sps = posicion["sps"]
+    ya_alcanzados = set(posicion.get("tps_alcanzados", []))
+
+    toco_sl = precio_actual <= sl if direccion == "BUY" else precio_actual >= sl
+    if toco_sl:
+        return ["SL"]
+
+    eventos = []
+    for i, sp in enumerate(sps, start=1):
+        if i in ya_alcanzados:
+            continue
+        tocado = precio_actual >= sp if direccion == "BUY" else precio_actual <= sp
+        if tocado:
+            eventos.append(f"TP{i}")
+    return eventos
+
+
+def construir_mensaje_sl_alcanzado(nombre, posicion, precio_actual):
+    accion = "BUY" if posicion["direccion"] == "BUY" else "SELL"
+    signo = 1 if posicion["direccion"] == "BUY" else -1
+    puntos = (precio_actual - posicion["precio_entrada"]) * signo
+    return (
+        f"🛑 *Stop Loss alcanzado* {accion} {nombre.upper()} @ {_formato_precio(posicion['precio_entrada'])}\n"
+        f"Total: {puntos:+,.2f} puntos"
+    )
+
+
+def construir_mensaje_tp_alcanzado(nombre, posicion, nivel, precio_nivel):
+    accion = "BUY" if posicion["direccion"] == "BUY" else "SELL"
+    signo = 1 if posicion["direccion"] == "BUY" else -1
+    puntos = (precio_nivel - posicion["precio_entrada"]) * signo
+    return (
+        f"✅ *Take Profit {nivel} alcanzado* {accion} {nombre.upper()} @ {_formato_precio(precio_nivel)}\n"
+        f"Total: {puntos:+,.2f} puntos"
+    )
+
+
+def gestionar_posiciones(resultados):
+    """Evalúa las posiciones ya abiertas contra el precio actual (avisando SL/TP
+    alcanzados y cerrándolas cuando corresponde), y abre una posición nueva por cada
+    activo que cruza a alta convicción y todavía no tiene una posición activa — nunca
+    se duplica una posición mientras la anterior sigue abierta."""
+    posiciones = cargar_posiciones_abiertas()
+    precios_actuales = {r["nombre"]: r["precio"] for r in resultados}
+
+    for nombre in list(posiciones.keys()):
+        if nombre not in precios_actuales:
+            continue
+        posicion = posiciones[nombre]
+        precio_actual = precios_actuales[nombre]
+
+        for evento in _evaluar_eventos_posicion(posicion, precio_actual):
+            if evento == "SL":
+                enviar_telegram_mensaje(construir_mensaje_sl_alcanzado(nombre, posicion, precio_actual))
+                print(f"🛑 SL alcanzado para {nombre}; posición cerrada.")
+                del posiciones[nombre]
+                break  # posición cerrada: no se siguen evaluando TPs de esta posición
+            else:
+                nivel = int(evento.replace("TP", ""))
+                precio_nivel = posicion["sps"][nivel - 1]
+                enviar_telegram_mensaje(construir_mensaje_tp_alcanzado(nombre, posicion, nivel, precio_nivel))
+                posicion.setdefault("tps_alcanzados", []).append(nivel)
+                print(f"✅ TP{nivel} alcanzado para {nombre}.")
+                if nivel == len(posicion["sps"]):
+                    print(f"🏁 Último TP alcanzado para {nombre}; posición cerrada.")
+                    del posiciones[nombre]
+
+    for r in resultados:
+        if not r["alta_conviccion"] or r["nombre"] in posiciones:
+            continue
+        posiciones[r["nombre"]] = {
+            "ticker": r["ticker"], "direccion": r["direccion"],
+            "precio_entrada": r["precio"], "sl": r["sl"], "sps": r["sps"],
+            "tps_alcanzados": [],
+            "fecha_apertura": datetime.datetime.now(ZONA_CHILE).isoformat(),
+            "probabilidad_apertura": r["probabilidad"],
+        }
+
+    guardar_posiciones_abiertas(posiciones)
+
+
 def construir_titulo(r):
     """Título obligatorio por activo, en la primera línea del bloque: la orden
     operativa (COMPRAR/VENDER/ESPERAR) nunca queda ambigua. Si el sistema de
@@ -863,7 +991,7 @@ def construir_bloque_pre_alerta_inminente(r):
         f"📍 *Precio de Gatillo:* {gatillo} _(Faltan {puntos_faltantes:,.2f} pts / ~5-10 min)_",
         f"🚀 *Entrada Estimada:* {_formato_precio(r['precio'])}",
         f"🛡️ *SL Proyectado:* {_formato_precio(r['sl'])} _(Rango acotado 200-400 pts)_",
-        f"🎯 *SP 1 a SP 5 Proyectados:* {_formato_precio(r['sps'][0])} al {_formato_precio(r['sps'][-1])}",
+        f"✅ *SP 1 a SP 5 Proyectados:* {_formato_precio(r['sps'][0])} al {_formato_precio(r['sps'][-1])}",
         f"💬 *Instrucción Operativa:* \"Tener la plataforma abierta. Si el precio rompe "
         f"{gatillo}, ingresar inmediatamente en {accion_corta}\".",
     ])
@@ -890,9 +1018,9 @@ def construir_bloque_alerta(r, narrativas):
     ]
     for i, sp in enumerate(r["sps"], start=1):
         if i == 1:
-            lineas.append(f"🎯 *SP 1:* {_formato_precio(sp)} _(Toma parcial 30-50% + SL a Break Even)_")
+            lineas.append(f"✅ *SP 1:* {_formato_precio(sp)} _(Toma parcial 30-50% + SL a Break Even)_")
         else:
-            lineas.append(f"🎯 *SP {i}:* {_formato_precio(sp)}")
+            lineas.append(f"✅ *SP {i}:* {_formato_precio(sp)}")
 
     lineas += [
         "",
@@ -932,6 +1060,53 @@ def construir_mensaje_telegram(fecha_hoy, hora_texto, resultados, narrativas):
 
     separador_principal = "\n\n" + ("─" * 20) + "\n\n"
     return separador_principal.join(bloques)
+
+
+def construir_mensaje_vigilancia(r, hora_texto):
+    """Mensaje independiente (fuera del reporte horario) para cuando la vigilancia
+    intra-hora detecta que un activo cruzó al umbral de pre-alerta inminente entre un
+    reporte y el siguiente."""
+    encabezado = f"📍 *ACTUALIZACIÓN EN VIVO - {hora_texto} (Chile)*\n{'=' * 20}\n\n"
+    pie = "\n\n_Contenido educativo generado automáticamente. No constituye asesoría financiera personalizada._"
+    return encabezado + construir_bloque_pre_alerta_inminente(r) + pie
+
+
+def vigilar_oportunidades_inminentes(resultados):
+    """Vigilancia intra-hora (sin agregar un cron nuevo): si algún activo de alta
+    convicción quedó cerca del gatillo (dentro de VIGILANCIA_BANDA_PCT) pero aún no
+    cruzó el umbral estricto de pre-alerta inminente, este mismo job se queda
+    re-chequeando solo esos activos cada VIGILANCIA_INTERVALO_MIN minutos (hasta
+    VIGILANCIA_DURACION_MIN) y dispara la alerta apenas cruce el umbral. No usa IA (el
+    cuerpo de la pre-alerta es determinístico), así que no genera costo adicional de
+    Claude ni retrasa el envío del reporte principal (corre después de enviarlo)."""
+    candidatos = {
+        r["nombre"]: r["ticker"] for r in resultados
+        if r["alta_conviccion"] and not r["pre_alerta_inminente"]
+        and r["distancia_pct_activacion"] is not None
+        and r["distancia_pct_activacion"] < VIGILANCIA_BANDA_PCT
+    }
+    if not candidatos:
+        return
+
+    print(f"👀 Vigilancia activa esta hora para: {', '.join(candidatos)} (re-chequeo cada {VIGILANCIA_INTERVALO_MIN} min).")
+    limite = datetime.datetime.now(ZONA_CHILE) + datetime.timedelta(minutes=VIGILANCIA_DURACION_MIN)
+
+    while candidatos and datetime.datetime.now(ZONA_CHILE) < limite:
+        time.sleep(VIGILANCIA_INTERVALO_MIN * 60)
+        for nombre, ticker in list(candidatos.items()):
+            datos_tf = descargar_multitemporal(ticker)
+            senal = generar_senal(nombre, ticker, datos_tf)
+            if senal is None:
+                continue
+
+            if senal["pre_alerta_inminente"]:
+                hora_actual_texto = datetime.datetime.now(ZONA_CHILE).strftime("%I:%M %p").lstrip("0")
+                enviar_telegram_mensaje(construir_mensaje_vigilancia(senal, hora_actual_texto))
+                print(f"⏳ Pre-alerta inminente disparada en vigilancia para {nombre}.")
+                del candidatos[nombre]
+            elif senal["distancia_pct_activacion"] is None or senal["distancia_pct_activacion"] >= VIGILANCIA_BANDA_PCT:
+                print(f"ℹ️ {nombre} se alejó del gatillo; se deja de vigilar esta hora.")
+                del candidatos[nombre]
 
 
 # ---------------------------------------------------------------------------
@@ -1433,6 +1608,11 @@ def generar_reporte():
     df_final.to_csv(ARCHIVO_CSV, index=False)
     print(f"✅ Archivo '{ARCHIVO_CSV}' actualizado.")
 
+    # 1bis. Seguimiento de posiciones: avisa SL/TP alcanzados de señales ya abiertas, y
+    #       abre una posición nueva por cada activo que cruza a alta convicción. Corre
+    #       ANTES del reporte horario para que esos avisos lleguen primero a Telegram.
+    gestionar_posiciones(resultados)
+
     # 2. Contexto macro/noticias + narrativa con IA — un único llamado, solo para los
     #    activos de alta convicción (>=70%), para no gastar requests/llamadas en horas
     #    donde el mercado no da señales accionables.
@@ -1467,6 +1647,10 @@ def generar_reporte():
 
     # 4. REPORTE 2 — Dashboard web (index.html con Chart.js) para GitHub Pages
     generar_pagina_web(fecha_hoy, hora_texto, resultados, datos_por_activo)
+
+    # 5. Vigilancia intra-hora: corre AL FINAL (no retrasa nada de lo anterior) y solo
+    #    si algún activo quedó cerca del gatillo sin llegar a cruzarlo todavía.
+    vigilar_oportunidades_inminentes(resultados)
 
 
 # ---------------------------------------------------------------------------
