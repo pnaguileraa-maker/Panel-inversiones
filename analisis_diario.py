@@ -985,16 +985,22 @@ def construir_bloque_pre_alerta_inminente(r):
     puntos_faltantes = abs(r["precio"] - r["zona_activacion"])
     gatillo = _formato_precio(r["zona_activacion"])
 
-    return "\n".join([
+    lineas = [
         construir_titulo(r),
         f"🎯 *Acción Requerida:* {accion}",
         f"📍 *Precio de Gatillo:* {gatillo} _(Faltan {puntos_faltantes:,.2f} pts / ~5-10 min)_",
         f"🚀 *Entrada Estimada:* {_formato_precio(r['precio'])}",
         f"🛡️ *SL Proyectado:* {_formato_precio(r['sl'])} _(Rango acotado 200-400 pts)_",
-        f"✅ *SP 1 a SP 5 Proyectados:* {_formato_precio(r['sps'][0])} al {_formato_precio(r['sps'][-1])}",
+    ]
+    # Cada Take Profit en su propia línea con check ✅ (no un rango combinado), para
+    # que se vea igual que un canal de señales real.
+    for i, sp in enumerate(r["sps"], start=1):
+        lineas.append(f"✅ *Take Profit {i}:* {_formato_precio(sp)}")
+    lineas.append(
         f"💬 *Instrucción Operativa:* \"Tener la plataforma abierta. Si el precio rompe "
-        f"{gatillo}, ingresar inmediatamente en {accion_corta}\".",
-    ])
+        f"{gatillo}, ingresar inmediatamente en {accion_corta}\"."
+    )
+    return "\n".join(lineas)
 
 
 def construir_bloque_alerta(r, narrativas):
