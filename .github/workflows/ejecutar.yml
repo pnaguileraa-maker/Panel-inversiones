@@ -9,27 +9,28 @@ permissions:
   id-token: write
 
 on:
-  schedule:
-    # NOTA (02-11-2026): GitHub dejó de disparar estos cron entre el 29-10 y el
-    # 02-11-2026 pese a estar bien formados (confirmado vía API: 0 ejecuciones
-    # "schedule" en ese lapso, con permisos de Actions abiertos y el workflow en
-    # estado "active"). Reescribir este bloque fuerza a GitHub a re-registrar el
-    # cron desde cero.
-    #
-    # Ventana única en UTC que cubre el horario 8:00-14:00 Chile en AMBOS husos:
-    # verano (UTC-3) necesita UTC 11-17, invierno (UTC-4) necesita UTC 12-18.
-    # La unión es UTC 11-18; el job "verificar-horario" filtra en cada disparo
-    # usando la hora REAL de Chile, así nunca se desincroniza con el cambio de
-    # horario ni se duplica el envío. Día de la semana 1-5 = lunes a viernes
-    # (seguro de usar en UTC porque las 11-18 UTC ya caen siempre DESPUÉS de la
-    # medianoche de Chile, así que el día de la semana en UTC y en Chile coinciden
-    # en toda esa ventana).
-    - cron: "10 11-18 * * 1-5"
-    # Autodiagnóstico diario automático de Telegram (datos simulados), antes de que
-    # abra la ventana de seguimiento intradía — no requiere ninguna acción manual.
-    # También restringido a lunes-viernes: no tiene sentido probarlo en fin de
-    # semana, cuando tampoco corre el seguimiento intradía real.
-    - cron: "45 10 * * 1-5"
+  # PAUSADO (03-11-2026): el disparador automático "schedule" se comentó a pedido
+  # explícito para detener los disparos programados y el consumo de cuota asociado
+  # mientras se investiga por qué GitHub no lo estaba disparando en el horario
+  # correcto (ver notas de versiones anteriores de este archivo en el historial de
+  # git). El código y la lógica de horario siguen intactos — para reactivarlo, solo
+  # hay que descomentar el bloque "schedule:" de abajo.
+  #
+  # schedule:
+  #   # Ventana única en UTC que cubre el horario 8:00-14:00 Chile en AMBOS husos:
+  #   # verano (UTC-3) necesita UTC 11-17, invierno (UTC-4) necesita UTC 12-18.
+  #   # La unión es UTC 11-18; el job "verificar-horario" filtra en cada disparo
+  #   # usando la hora REAL de Chile, así nunca se desincroniza con el cambio de
+  #   # horario ni se duplica el envío. Día de la semana 1-5 = lunes a viernes
+  #   # (seguro de usar en UTC porque las 11-18 UTC ya caen siempre DESPUÉS de la
+  #   # medianoche de Chile, así que el día de la semana en UTC y en Chile coinciden
+  #   # en toda esa ventana).
+  #   - cron: "10 11-18 * * 1-5"
+  #   # Autodiagnóstico diario automático de Telegram (datos simulados), antes de que
+  #   # abra la ventana de seguimiento intradía — no requiere ninguna acción manual.
+  #   # También restringido a lunes-viernes: no tiene sentido probarlo en fin de
+  #   # semana, cuando tampoco corre el seguimiento intradía real.
+  #   - cron: "45 10 * * 1-5"
   workflow_dispatch:
     inputs:
       modo:
