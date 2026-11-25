@@ -27,9 +27,39 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # claude-3-5-sonnet-20241022 fue retirado el 28-10-2025; se usa su reemplazo recomendado.
 MODELO_CLAUDE = "claude-sonnet-5"
+MODELO_GROQ = "openai/gpt-oss-120b"
+MODELO_GEMINI = "gemini-2.5-flash"
+
+# Ratio Riesgo/Beneficio mínimo (contra TP1) que exige el filtro de calidad del
+# Gestor de Riesgo Cuantitativo antes de redactar una alerta ejecutiva.
+RR_MINIMO_INSTITUCIONAL = 1.5
+
+SYSTEM_PROMPT_INSTITUCIONAL = """Eres un Gestor de Riesgo Cuantitativo y Trader Institucional especializado en materias primas (WTI, Oro XAU/USD), índices y ETFs. Tu única función es auditar señales técnicas precalculadas y redactar alertas ejecutivas para Telegram.
+
+REGLAS ESTRICTAS:
+1. CERO CÁLCULOS INVENTADOS: Usa exclusivamente los precios, niveles de Entrada, Stop Loss (SL), Take Profit (TP) y Ratio R:R entregados en los datos de entrada. Jamás modifiques ni estimes un decimal.
+2. FILTRO DE CALIDAD (VETO): Si el Ratio R:R es menor a 1:1.5, si la tendencia macro contradice la entrada sin divergencia clara, o si hay ruido extremo de volatilidad, responde únicamente con la palabra: DESCARTAR.
+3. TONO Y FORMATO: Escribe en español técnico, directo y sin adornos. Máximo 180 palabras. Usa formato HTML compatible con Telegram (<b>, <i>, <code>).
+
+ESTRUCTURA OBLIGATORIA DEL MENSAJE:
+<b>[SESGO: COMPRA / VENTA] — [ACTIVO] ([TIMEFRAME])</b>
+<i>Tesis institucional en 2 líneas: confluencia técnica, estructura de mercado y catalizador.</i>
+
+<b>Niveles de Ejecución:</b>
+• <b>Entrada:</b> <code>[Precio]</code>
+• <b>Stop Loss (SL):</b> <code>[Precio SL]</code> (<i>[Distancia % o pips]</i>)
+• <b>Take Profit 1 (TP1):</b> <code>[Precio TP1]</code>
+• <b>Take Profit 2 (TP2):</b> <code>[Precio TP2]</code>
+• <b>Ratio R:R:</b> <code>1:[Valor]</code>
+
+<b>Gestión y Riesgo:</b>
+• <b>Invalidación:</b> [Condición exacta que anula la idea]
+• <b>Plan de gestión:</b> [Ej. Mover SL a Break Even al tocar TP1 y cerrar 50%]"""
 
 ZONA_CHILE = ZoneInfo("America/Santiago")
 
@@ -842,6 +872,104 @@ def narrativa_respaldo(r):
 
 
 # ---------------------------------------------------------------------------
+# Motor de análisis institucional (Groq -> Gemini) — auditoría y redacción de la
+# alerta ejecutiva en HTML. Todos los niveles duros (entrada, SL, TP1, TP2,
+# distancia y R:R) se calculan en Python en construir_datos_senal(); la IA solo
+# redacta y aplica el veto de calidad sobre esos números, nunca los recalcula.
+# ---------------------------------------------------------------------------
+
+def construir_datos_senal(r, timeframe="1H"):
+    """Empaqueta los niveles duros ya calculados por el motor cuantitativo (Python)
+    junto con el contexto técnico disponible, para que la IA los audite sin estimar
+    ni modificar un solo decimal."""
+    distancia_sl = abs(r["precio"] - r["sl"])
+    distancia_tp1 = abs(r["sps"][0] - r["precio"])
+    ratio_riesgo_beneficio = round(distancia_tp1 / distancia_sl, 2) if distancia_sl > 0 else 0.0
+    distancia_sl_pct = round((distancia_sl / r["precio"]) * 100, 3) if r["precio"] else 0.0
+
+    return {
+        "activo": r["nombre"],
+        "ticker": r["ticker"],
+        "timeframe": timeframe,
+        "sesgo": "COMPRA" if r["direccion"] == "BUY" else "VENTA",
+        "precio_entrada": r["precio"],
+        "stop_loss": r["sl"],
+        "distancia_sl_pct": distancia_sl_pct,
+        "take_profit_1": r["sps"][0],
+        "take_profit_2": r["sps"][1],
+        "ratio_riesgo_beneficio": ratio_riesgo_beneficio,
+        "tendencia_macro_ema200": r["ema_bias_texto"],
+        "momentum_macd_1h": r["macd_texto"],
+        "rsi_1h": r["rsi_valor"],
+        "estado_rsi": r["rsi_estado"],
+        "estructura_rebote": r["estructura_label"],
+        "patron_chartista": r["patron_label"] or "sin patrón Doble Suelo/Techo confirmado",
+        "probabilidad_confluencia_pct": r["probabilidad"],
+        "factor_que_falta_para_confirmar": r["factor_faltante"],
+    }
+
+
+def _llamar_groq_institucional(datos_senal):
+    if not GROQ_API_KEY:
+        raise RuntimeError("GROQ_API_KEY no configurada")
+
+    payload = {
+        "model": MODELO_GROQ,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT_INSTITUCIONAL},
+            {"role": "user", "content": json.dumps(datos_senal, ensure_ascii=False)},
+        ],
+        "temperature": 0.2,
+        "max_tokens": 900,
+        "reasoning_effort": "low",
+    }
+    respuesta = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+        json=payload,
+        timeout=25,
+    )
+    respuesta.raise_for_status()
+    return respuesta.json()["choices"][0]["message"]["content"].strip()
+
+
+def _llamar_gemini_institucional(datos_senal):
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY no configurada")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODELO_GEMINI}:generateContent"
+    payload = {
+        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT_INSTITUCIONAL}]},
+        "contents": [{"role": "user", "parts": [{"text": json.dumps(datos_senal, ensure_ascii=False)}]}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 500},
+    }
+    respuesta = requests.post(
+        url, params={"key": GEMINI_API_KEY}, json=payload, timeout=25,
+    )
+    respuesta.raise_for_status()
+    return respuesta.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+
+def generar_analisis_institucional(datos_senal: dict) -> str:
+    """Audita la señal precalculada y redacta la alerta ejecutiva en HTML para
+    Telegram. Flujo primario Groq (openai/gpt-oss-120b); si falla o alcanza su
+    límite, respaldo automático en Gemini. Devuelve el HTML de la alerta, la
+    palabra "DESCARTAR" si la IA aplicó el veto de calidad, o "" si ambos
+    proveedores fallaron (en cuyo caso no debe enviarse ninguna alerta)."""
+    try:
+        return _llamar_groq_institucional(datos_senal)
+    except Exception as e:
+        print(f"⚠️ Groq falló en el análisis institucional de {datos_senal.get('activo')}: {e}")
+
+    try:
+        return _llamar_gemini_institucional(datos_senal)
+    except Exception as e:
+        print(f"⚠️ Gemini (respaldo) también falló en el análisis institucional de {datos_senal.get('activo')}: {e}")
+
+    return ""
+
+
+# ---------------------------------------------------------------------------
 # Mensaje de Telegram — dualidad: alerta destacada (>=70%) + resumen del resto
 # ---------------------------------------------------------------------------
 
@@ -1637,6 +1765,17 @@ def generar_reporte():
         fecha_hoy, hora_texto, resultados, narrativas if isinstance(narrativas, dict) else {}
     )
     enviar_telegram_mensaje(mensaje)
+
+    # 3bis. Análisis institucional (Groq -> Gemini): una alerta ejecutiva HTML adicional
+    #       por cada activo de alta convicción, auditada sobre los niveles ya calculados
+    #       en Python (ver construir_datos_senal). Si la IA devuelve "DESCARTAR" (veto de
+    #       calidad) o ambos proveedores fallan, simplemente no se envía esa alerta.
+    for r in altos:
+        analisis_html = generar_analisis_institucional(construir_datos_senal(r))
+        if not analisis_html or analisis_html.strip().upper() == "DESCARTAR":
+            print(f"🚫 Análisis institucional descartado o no disponible para {r['nombre']}.")
+            continue
+        enviar_telegram_mensaje(analisis_html, parse_mode="HTML")
 
     carpeta_temp = tempfile.mkdtemp(prefix="graficos_")
     try:
