@@ -1,0 +1,18 @@
+{
+  "Bitcoin": {
+    "ticker": "BTC-USD",
+    "direccion": "SELL",
+    "precio_entrada": 60267.41015625,
+    "sl": 60734.039788,
+    "sps": [
+      59872.569699,
+      59405.940067,
+      58939.310435,
+      58472.680804,
+      58006.051172
+    ],
+    "tps_alcanzados": [],
+    "fecha_apertura": "2026-11-25T18:08:19.475350-03:00",
+    "probabilidad_apertura": 70.0
+  }
+}
