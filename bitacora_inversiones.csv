@@ -1,63 +1,128 @@
-Fecha,Activo,Ticker,Precio_Actual,Var_Diaria_%,RSI_14,SMA_20,SMA_50,SMA_200,MACD_Hist,BB_Upper,BB_Lower,ATR_14,Precio,Var_%
-2026-10-27,Oro,GC=F,4069.1,0.76,42.93,4143.23,4325.8,4528.63,-4.9869,4257.65,4028.82,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.97,-1.76,68.67,95.72,93.63,85.71,0.4793,105.94,85.49,4.38,,
-2026-10-27,Gas_Natural,NG=F,2.99,14.99,42.54,3.03,2.96,3.08,-0.0483,3.42,2.64,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,
-2026-10-27,Oro,GC=F,4069.0,0.76,42.92,4143.23,4325.79,4528.63,-4.9933,4257.66,4028.8,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.94,-1.79,68.6,95.71,93.62,85.71,0.4774,105.94,85.49,4.38,,
-2026-10-27,Gas_Natural,NG=F,3.01,15.6,43.19,3.03,2.96,3.08,-0.0472,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,
-2026-10-27,Oro,GC=F,4073.5,0.87,43.42,4143.45,4325.88,4528.65,-4.7061,4257.29,4029.62,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.51,-2.21,67.67,95.69,93.62,85.71,0.45,105.88,85.51,4.39,,
-2026-10-27,Gas_Natural,NG=F,3.03,16.26,43.85,3.03,2.96,3.08,-0.0462,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.11,0.34,53.33,28.98,28.52,27.9,-0.0227,29.15,28.8,0.11,,
-2026-10-27,Oro,GC=F,4073.9,0.88,43.47,4143.47,4325.89,4528.65,-4.6806,4257.26,4029.69,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.64,-2.08,67.95,95.7,93.62,85.71,0.4583,105.89,85.5,4.39,,
-2026-10-27,Gas_Natural,NG=F,3.03,16.33,43.93,3.03,2.96,3.08,-0.046,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.11,0.34,53.33,28.98,28.52,27.9,-0.0227,29.15,28.8,0.11,,
-2026-10-27,Oro,GC=F,4074.6,0.9,43.54,4143.51,4325.91,4528.66,-4.6359,4257.2,4029.82,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.58,-2.14,67.82,95.7,93.62,85.71,0.4545,105.89,85.51,4.39,,
-2026-10-27,Gas_Natural,NG=F,3.02,16.22,43.81,3.03,2.96,3.08,-0.0462,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.1,0.31,52.88,28.98,28.52,27.9,-0.0233,29.15,28.8,0.11,,
-2026-10-27,Oro,GC=F,4073.5,0.87,43.42,4143.45,4325.88,4528.65,-4.7061,4257.29,4029.62,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.62,-2.1,67.91,95.7,93.62,85.71,0.457,105.89,85.5,4.39,,
-2026-10-27,Gas_Natural,NG=F,3.03,16.49,44.09,3.03,2.96,3.08,-0.0458,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.1,0.31,52.91,28.98,28.52,27.9,-0.0233,29.15,28.8,0.11,,
-2026-10-27,Oro,GC=F,4074.8,0.9,43.57,4143.52,4325.91,4528.66,-4.6232,4257.19,4029.85,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.75,-1.98,68.19,95.7,93.62,85.71,0.4653,105.91,85.5,4.39,,
-2026-10-27,Gas_Natural,NG=F,3.03,16.6,44.2,3.03,2.96,3.08,-0.0456,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,
-2026-10-27,Oro,GC=F,4074.6,0.9,43.54,4143.51,4325.91,4528.66,-4.6359,4257.2,4029.82,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.72,-2.0,68.12,95.7,93.62,85.71,0.4634,105.91,85.5,4.39,,
-2026-10-27,Gas_Natural,NG=F,3.03,16.6,44.2,3.03,2.96,3.08,-0.0456,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.1,0.31,52.93,28.98,28.52,27.9,-0.0232,29.15,28.8,0.11,,
-2026-10-27,Oro,GC=F,4074.6,0.9,43.54,4143.51,4325.91,4528.66,-4.6359,4257.2,4029.82,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.87,-1.86,68.45,95.71,93.62,85.71,0.473,105.93,85.5,4.39,,
-2026-10-27,Gas_Natural,NG=F,3.06,17.68,45.25,3.04,2.96,3.08,-0.0438,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,
-2026-10-27,Bitcoin,BTC-USD,80668.71,0.83,38.44,81847.97,81828.91,73024.99,-317.7688,84052.75,79643.19,1918.22,,
-2026-10-27,Oro,GC=F,4075.1,0.91,43.6,4143.53,4325.92,4528.66,-4.604,4257.16,4029.91,67.76,,
-2026-10-27,Petroleo_WTI,CL=F,99.92,-1.81,68.56,95.71,93.62,85.71,0.4762,105.93,85.49,4.39,,
-2026-10-27,Gas_Natural,NG=F,3.06,17.72,45.29,3.04,2.96,3.08,-0.0437,3.42,2.65,0.18,,
-2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,
-2026-10-27,Bitcoin,BTC-USD,80672.34,0.83,38.46,81848.15,81828.99,73025.0,-317.537,84052.52,79643.78,1918.22,,
-2026-10-27,Oro,GC=F,,,43.53,4143.5,4325.9,4528.65,-4.6423,,,,4074.5,0.89
-2026-10-27,Petróleo WTI,CL=F,,,68.76,95.72,93.63,85.71,0.4819,,,,100.01,-1.72
-2026-10-27,Gas Natural,NG=F,,,45.47,3.04,2.96,3.08,-0.0434,,,,3.07,17.91
-2026-10-27,Índice Dólar,UUP,,,53.77,28.98,28.52,27.9,-0.022,,,,29.12,0.38
-2026-10-27,Bitcoin,BTC-USD,,,38.03,81844.49,81827.52,73024.64,-322.2066,,,,80599.17,0.74
-2026-10-27,Oro,GC=F,,,43.34,4143.42,4325.87,4528.65,-4.7508,,,,4072.8,0.85
-2026-10-27,Petróleo WTI,CL=F,,,69.2,95.73,93.63,85.71,0.4947,,,,100.21,-1.52
-2026-10-27,Gas Natural,NG=F,,,45.69,3.04,2.96,3.08,-0.043,,,,3.07,18.14
-2026-10-27,Índice Dólar,UUP,,,53.77,28.98,28.52,27.9,-0.022,,,,29.12,0.38
-2026-10-27,Bitcoin,BTC-USD,,,37.74,81842.04,81826.54,73024.39,-325.3332,,,,80550.18,0.68
-2026-10-29,Oro,GC=F,,,29.95,4127.59,4308.0,4522.94,-4.3759,,,,4019.0,-0.8
-2026-10-29,Petróleo WTI,CL=F,,,65.77,96.78,94.3,86.13,0.3757,,,,101.83,-0.92
-2026-10-29,Gas Natural,NG=F,,,39.17,3.01,2.95,3.07,-0.0328,,,,2.94,4.47
-2026-10-29,Índice Dólar,UUP,,,50.47,29.0,28.56,27.92,-0.0204,,,,29.03,-0.1
-2026-10-29,Bitcoin,BTC-USD,,,42.61,81743.74,81937.71,73116.64,-193.5199,,,,80734.18,-0.66
-2026-10-29,Oro,GC=F,,,30.22,4127.81,,4522.96,,,,,4023.5,-0.69
-2026-10-29,Petróleo WTI,CL=F,,,66.36,96.79,,86.13,,,,,102.11,-0.65
-2026-10-29,Gas Natural,NG=F,,,38.55,3.0,,3.07,,,,,2.93,4.01
-2026-10-29,Índice Dólar,UUP,,,50.96,29.0,,27.92,,,,,29.04,-0.07
-2026-10-29,Bitcoin,BTC-USD,,,42.51,81742.66,,73116.53,,,,,80712.56,-0.68
+Fecha,Activo,Ticker,Precio_Actual,Var_Diaria_%,RSI_14,SMA_20,SMA_50,SMA_200,MACD_Hist,BB_Upper,BB_Lower,ATR_14,Precio,Var_%,Direccion,Probabilidad,Categoria,SL,TP1,TP2,TP3,TP4,TP5,RSI_1H,EMA_Bias,MACD_1H,Hora,Estado,SP1,SP2,SP3,SP4,SP5,Factor_Faltante,Alta_Conviccion,Estructura,Sesgo_General,Patron_Doble,Pre_Alerta_Inminente
+2026-10-27,Oro,GC=F,4069.1,0.76,42.93,4143.23,4325.8,4528.63,-4.9869,4257.65,4028.82,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.97,-1.76,68.67,95.72,93.63,85.71,0.4793,105.94,85.49,4.38,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,2.99,14.99,42.54,3.03,2.96,3.08,-0.0483,3.42,2.64,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4069.0,0.76,42.92,4143.23,4325.79,4528.63,-4.9933,4257.66,4028.8,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.94,-1.79,68.6,95.71,93.62,85.71,0.4774,105.94,85.49,4.38,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.01,15.6,43.19,3.03,2.96,3.08,-0.0472,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4073.5,0.87,43.42,4143.45,4325.88,4528.65,-4.7061,4257.29,4029.62,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.51,-2.21,67.67,95.69,93.62,85.71,0.45,105.88,85.51,4.39,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.03,16.26,43.85,3.03,2.96,3.08,-0.0462,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.11,0.34,53.33,28.98,28.52,27.9,-0.0227,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4073.9,0.88,43.47,4143.47,4325.89,4528.65,-4.6806,4257.26,4029.69,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.64,-2.08,67.95,95.7,93.62,85.71,0.4583,105.89,85.5,4.39,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.03,16.33,43.93,3.03,2.96,3.08,-0.046,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.11,0.34,53.33,28.98,28.52,27.9,-0.0227,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4074.6,0.9,43.54,4143.51,4325.91,4528.66,-4.6359,4257.2,4029.82,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.58,-2.14,67.82,95.7,93.62,85.71,0.4545,105.89,85.51,4.39,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.02,16.22,43.81,3.03,2.96,3.08,-0.0462,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.1,0.31,52.88,28.98,28.52,27.9,-0.0233,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4073.5,0.87,43.42,4143.45,4325.88,4528.65,-4.7061,4257.29,4029.62,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.62,-2.1,67.91,95.7,93.62,85.71,0.457,105.89,85.5,4.39,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.03,16.49,44.09,3.03,2.96,3.08,-0.0458,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.1,0.31,52.91,28.98,28.52,27.9,-0.0233,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4074.8,0.9,43.57,4143.52,4325.91,4528.66,-4.6232,4257.19,4029.85,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.75,-1.98,68.19,95.7,93.62,85.71,0.4653,105.91,85.5,4.39,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.03,16.6,44.2,3.03,2.96,3.08,-0.0456,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4074.6,0.9,43.54,4143.51,4325.91,4528.66,-4.6359,4257.2,4029.82,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.72,-2.0,68.12,95.7,93.62,85.71,0.4634,105.91,85.5,4.39,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.03,16.6,44.2,3.03,2.96,3.08,-0.0456,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.1,0.31,52.93,28.98,28.52,27.9,-0.0232,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4074.6,0.9,43.54,4143.51,4325.91,4528.66,-4.6359,4257.2,4029.82,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.87,-1.86,68.45,95.71,93.62,85.71,0.473,105.93,85.5,4.39,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.06,17.68,45.25,3.04,2.96,3.08,-0.0438,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Bitcoin,BTC-USD,80668.71,0.83,38.44,81847.97,81828.91,73024.99,-317.7688,84052.75,79643.19,1918.22,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,4075.1,0.91,43.6,4143.53,4325.92,4528.66,-4.604,4257.16,4029.91,67.76,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petroleo_WTI,CL=F,99.92,-1.81,68.56,95.71,93.62,85.71,0.4762,105.93,85.49,4.39,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas_Natural,NG=F,3.06,17.72,45.29,3.04,2.96,3.08,-0.0437,3.42,2.65,0.18,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Indice_Dolar,UUP,29.1,0.33,53.11,28.98,28.52,27.9,-0.023,29.15,28.8,0.11,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Bitcoin,BTC-USD,80672.34,0.83,38.46,81848.15,81828.99,73025.0,-317.537,84052.52,79643.78,1918.22,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,,,43.53,4143.5,4325.9,4528.65,-4.6423,,,,4074.5,0.89,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petróleo WTI,CL=F,,,68.76,95.72,93.63,85.71,0.4819,,,,100.01,-1.72,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas Natural,NG=F,,,45.47,3.04,2.96,3.08,-0.0434,,,,3.07,17.91,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Índice Dólar,UUP,,,53.77,28.98,28.52,27.9,-0.022,,,,29.12,0.38,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Bitcoin,BTC-USD,,,38.03,81844.49,81827.52,73024.64,-322.2066,,,,80599.17,0.74,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Oro,GC=F,,,43.34,4143.42,4325.87,4528.65,-4.7508,,,,4072.8,0.85,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Petróleo WTI,CL=F,,,69.2,95.73,93.63,85.71,0.4947,,,,100.21,-1.52,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Gas Natural,NG=F,,,45.69,3.04,2.96,3.08,-0.043,,,,3.07,18.14,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Índice Dólar,UUP,,,53.77,28.98,28.52,27.9,-0.022,,,,29.12,0.38,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-27,Bitcoin,BTC-USD,,,37.74,81842.04,81826.54,73024.39,-325.3332,,,,80550.18,0.68,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Oro,GC=F,,,29.95,4127.59,4308.0,4522.94,-4.3759,,,,4019.0,-0.8,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Petróleo WTI,CL=F,,,65.77,96.78,94.3,86.13,0.3757,,,,101.83,-0.92,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Gas Natural,NG=F,,,39.17,3.01,2.95,3.07,-0.0328,,,,2.94,4.47,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Índice Dólar,UUP,,,50.47,29.0,28.56,27.92,-0.0204,,,,29.03,-0.1,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Bitcoin,BTC-USD,,,42.61,81743.74,81937.71,73116.64,-193.5199,,,,80734.18,-0.66,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Oro,GC=F,,,30.22,4127.81,,4522.96,,,,,4023.5,-0.69,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Petróleo WTI,CL=F,,,66.36,96.79,,86.13,,,,,102.11,-0.65,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Gas Natural,NG=F,,,38.55,3.0,,3.07,,,,,2.93,4.01,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Índice Dólar,UUP,,,50.96,29.0,,27.92,,,,,29.04,-0.07,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-29,Bitcoin,BTC-USD,,,42.51,81742.66,,73116.53,,,,,80712.56,-0.68,,,,,,,,,,,,,,,,,,,,,,,,,
+2026-10-30,Oro,GC=F,,,,,,,,,,,3924.2,,SELL,74.0,OPORTUNIDAD EN DESARROLLO,4046.3101,3802.0899,3741.0348,3679.9797,3557.8697,3435.7595,18.51,Bajista,Cruce Bajista,,,,,,,,,,,,,
+2026-10-30,Petróleo WTI,CL=F,,,,,,,,,,,104.3,,BUY,65.0,OPORTUNIDAD EN DESARROLLO,101.6209,106.9791,108.3186,109.6582,112.3372,115.0163,62.98,Alcista,Cruce Alcista,,,,,,,,,,,,,
+2026-10-30,Gas Natural,NG=F,,,,,,,,,,,2.852,,SELL,47.5,NEUTRAL,2.9603,2.7437,2.6896,2.6354,2.5271,2.4188,31.25,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,,,,,,,,,,,,,
+2026-10-30,Índice Dólar,UUP,,,,,,,,,,,29.031,,BUY,65.0,OPORTUNIDAD EN DESARROLLO,28.9663,29.0957,29.128,29.1604,29.225,29.2897,33.32,Alcista,Cruce Bajista,,,,,,,,,,,,,
+2026-10-30,Bitcoin,BTC-USD,,,,,,,,,,,77358.8203,,BUY,47.5,NEUTRAL,76266.7406,78450.9001,78996.9399,79542.9798,80635.0595,81727.1393,58.99,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,,,,,,,,,,,,,
+2026-10-30,Oro,GC=F,,,,,,,,,,,3919.2,,SELL,74.0,,4046.2986,,,,,,16.82,Bajista,Cruce Bajista,12:24,PRE-ALERTA PREDICTIVA: SETUP EN FORMACIÓN,3908.2078,3895.2171,3882.2263,3869.2356,3856.2449,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,,,,,
+2026-10-30,Petróleo WTI,CL=F,,,,,,,,,,,104.18,,BUY,55.0,,102.0169,,,,,,48.68,Alcista,Cruce Alcista,12:24,ORDEN DIRECTA: MANTENERSE FUERA / ESPERAR,104.5823,105.0577,105.5331,106.0086,106.484,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,,,,,
+2026-10-30,Gas Natural,NG=F,,,,,,,,,,,2.866,,SELL,47.5,,2.9344,,,,,,34.78,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,12:24,ORDEN DIRECTA: MANTENERSE FUERA / ESPERAR,2.853,2.8376,2.8223,2.8069,2.7915,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,,,,,
+2026-10-30,Índice Dólar,UUP,,,,,,,,,,,29.0249,,BUY,55.0,,28.9907,,,,,,32.58,Alcista,Cruce Bajista,12:24,ORDEN DIRECTA: MANTENERSE FUERA / ESPERAR,29.0488,29.0771,29.1053,29.1336,29.1619,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,,,,,
+2026-10-30,Bitcoin,BTC-USD,,,,,,,,,,,77791.8828,,BUY,47.5,,76262.8129,,,,,,62.89,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:24,ORDEN DIRECTA: MANTENERSE FUERA / ESPERAR,78133.4822,78537.1906,78940.899,79344.6074,79748.3158,un toque o ruptura de las Bandas de Bollinger con expansión del ATR,,,,,
+2026-10-30,Oro,GC=F,,,,,,,,,,,3916.0,,SELL,74.0,,4046.3122,,,,,,16.47,Bajista,Cruce Bajista,12:39,PRE-ALERTA DE ALTA CONFLUENCIA,3904.9332,3891.8543,3878.7753,3865.6964,3852.6175,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,True,,,,
+2026-10-30,Petróleo WTI,CL=F,,,,,,,,,,,103.74,,BUY,55.0,,102.0143,,,,,,44.97,Alcista,Cruce Alcista,12:39,ESPERAR / SIN DIRECCIÓN,104.1564,104.6486,105.1407,105.6329,106.125,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,,,,
+2026-10-30,Gas Natural,NG=F,,,,,,,,,,,2.88,,BUY,47.5,,2.8276,,,,,,42.31,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:39,ESPERAR / SIN DIRECCIÓN,2.8935,2.9094,2.9253,2.9413,2.9572,un toque o ruptura de las Bandas de Bollinger con expansión del ATR,False,,,,
+2026-10-30,Índice Dólar,UUP,,,,,,,,,,,29.005,,BUY,55.0,,28.9771,,,,,,32.6,Alcista,Cruce Bajista,12:39,ESPERAR / SIN DIRECCIÓN,29.0286,29.0565,29.0844,29.1123,29.1402,que el histograma del MACD en 1H/15M gire a favor de la dirección,False,,,,
+2026-10-30,Bitcoin,BTC-USD,,,,,,,,,,,77404.7578,,BUY,37.5,,76262.8129,,,,,,59.44,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:39,ESPERAR / SIN DIRECCIÓN,77746.3572,78150.0656,78553.774,78957.4824,79361.1908,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,,,,
+2026-10-30,Oro,GC=F,,,,,,,,,,,3909.1001,,SELL,65.0,,4046.3701,,,,,,15.75,Bajista,Cruce Bajista,12:53,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,3897.7151,3884.2601,3870.8051,3857.35,3843.895,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),,,
+2026-10-30,Petróleo WTI,CL=F,,,,,,,,,,,104.09,,BUY,55.0,,102.0117,,,,,,47.87,Alcista,Cruce Alcista,12:53,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,104.5206,105.0294,105.5383,106.0471,106.556,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),,,
+2026-10-30,Gas Natural,NG=F,,,,,,,,,,,2.889,,BUY,62.5,,2.8275,,,,,,45.65,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:53,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,2.9029,2.9193,2.9356,2.952,2.9684,que las 4 temporalidades (1D/4H/1H/15M) apunten en la misma dirección,False,Reingreso desde Banda Inferior,,,
+2026-10-30,Índice Dólar,UUP,,,,,,,,,,,29.017,,BUY,62.5,,28.9891,,,,,,34.14,Alcista,Cruce Bajista,12:53,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,29.0406,29.0685,29.0964,29.1243,29.1522,que el histograma del MACD en 1H/15M gire a favor de la dirección,False,Testeo de EMA200,,,
+2026-10-30,Bitcoin,BTC-USD,,,,,,,,,,,77449.3828,,BUY,37.5,,76262.8129,,,,,,59.87,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:53,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,77790.9822,78194.6906,78598.399,79002.1074,79405.8158,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),,,
+2026-10-30,Oro,GC=F,,,,,,,,,,,3906.8999,,SELL,65.0,,4046.3829,,,,,,15.51,Bajista,Cruce Bajista,12:59,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,3895.4442,3881.9056,3868.367,3854.8284,3841.2898,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Bajista,,
+2026-10-30,Petróleo WTI,CL=F,,,,,,,,,,,104.11,,BUY,55.0,,102.0117,,,,,,48.05,Alcista,Cruce Alcista,12:59,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,104.5406,105.0494,105.5583,106.0671,106.576,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Alcista,,
+2026-10-30,Gas Natural,NG=F,,,,,,,,,,,2.892,,BUY,62.5,,2.8274,,,,,,46.81,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:59,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,2.906,2.9226,2.9392,2.9558,2.9723,que las 4 temporalidades (1D/4H/1H/15M) apunten en la misma dirección,False,Reingreso desde Banda Inferior,Neutral,,
+2026-10-30,Índice Dólar,UUP,,,,,,,,,,,29.02,,BUY,72.5,,28.9907,,,,,,34.88,Alcista,Cruce Bajista,12:59,PRE-ALERTA PREDICTIVA: BUSCAR COMPRA (LONG),29.0438,29.0719,29.1001,29.1282,29.1564,que el histograma del MACD en 1H/15M gire a favor de la dirección,True,Testeo de EMA200,Alcista,,
+2026-10-30,Bitcoin,BTC-USD,,,,,,,,,,,77513.0078,,BUY,37.5,,76262.8129,,,,,,60.47,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:59,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,77854.6072,78258.3156,78662.024,79065.7324,79469.4408,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,,
+2026-11-02,Oro,GC=F,,,,,,,,,,,3957.3999,,SELL,70.0,,3968.162,,,,,,71.46,Bajista,Cruce Alcista,11:40,PRE-ALERTA PREDICTIVA: BUSCAR VENTA (SHORT),3948.2935,3937.5314,3926.7692,3916.0071,3905.245,que el histograma del MACD en 1H/15M gire a favor de la dirección,True,Reingreso desde Banda Superior,Bajista,,
+2026-11-02,Petróleo WTI,CL=F,,,,,,,,,,,97.41,,BUY,75.0,,96.8793,,,,,,7.22,Alcista,Cruce Bajista,11:40,ORDEN DIRECTA: COMPRAR (LONG),97.859,98.3897,98.9204,99.4511,99.9818,que el histograma del MACD en 1H/15M gire a favor de la dirección,True,Reingreso desde Banda Inferior,Alcista,,
+2026-11-02,Gas Natural,NG=F,,,,,,,,,,,2.952,,SELL,47.5,,2.9805,,,,,,57.67,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,11:40,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,2.9383,2.9221,2.9059,2.8897,2.8735,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",False,Confluencia técnica general (sin rebote puntual detectado),Neutral,,
+2026-11-02,Índice Dólar,UUP,,,,,,,,,,,28.9195,,SELL,42.5,,29.1587,,,,,,23.3,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,11:40,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,28.899,28.8748,28.8506,28.8263,28.8021,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,,
+2026-11-02,Bitcoin,BTC-USD,,,,,,,,,,,77872.1562,,BUY,50.0,,77442.7573,,,,,,45.69,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,11:40,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,78056.5809,78274.5373,78492.4937,78710.4501,78928.4064,que la EMA50 cruce o se alinee con la EMA200 en 1D y 1H,False,Testeo de EMA200,Neutral,,
+2026-11-02,Oro,GC=F,,,,,,,,,,,3963.0,,SELL,80.0,,3982.3979,,,,,,67.71,Bajista,Cruce Alcista,16:16,ORDEN DIRECTA: VENDER (SHORT),3954.2118,3943.8257,3933.4397,3923.0536,3912.6676,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",True,Confluencia técnica general (sin rebote puntual detectado),Bajista,Doble Techo (M) con divergencia bajista de RSI,True
+2026-11-02,Petróleo WTI,CL=F,,,,,,,,,,,96.22,,BUY,52.5,,95.0525,,,,,,14.17,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:16,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,96.7563,97.39,98.0238,98.6575,99.2913,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-02,Gas Natural,NG=F,,,,,,,,,,,2.873,,SELL,47.5,,2.9811,,,,,,38.29,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:16,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,2.8558,2.8355,2.8153,2.795,2.7747,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-02,Índice Dólar,UUP,,,,,,,,,,,28.955,,SELL,57.5,,29.1286,,,,,,34.68,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:16,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,28.9351,28.9115,28.8879,28.8643,28.8407,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Doble Techo (M) con divergencia bajista de RSI,False
+2026-11-02,Bitcoin,BTC-USD,,,,,,,,,,,76888.6172,,BUY,67.5,,76630.8222,,,,,,13.59,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:16,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,77106.7514,77364.5464,77622.3414,77880.1364,78137.9314,que el histograma del MACD en 1H/15M gire a favor de la dirección,False,Reingreso desde Banda Inferior,Neutral,Doble Suelo (W) con divergencia alcista de RSI,False
+2026-11-02,Oro,GC=F,,,,,,,,,,,3955.6001,,SELL,80.0,,3982.465,,,,,,63.63,Bajista,Cruce Alcista,16:52,ORDEN DIRECTA: VENDER (SHORT),3946.4426,3935.6201,3924.7976,3913.9752,3903.1527,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",True,Confluencia técnica general (sin rebote puntual detectado),Bajista,Doble Techo (M) con divergencia bajista de RSI,True
+2026-11-02,Petróleo WTI,CL=F,,,,,,,,,,,96.75,,BUY,52.5,,95.0467,,,,,,21.13,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:52,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,97.3181,97.9894,98.6608,99.3321,100.0035,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-02,Gas Natural,NG=F,,,,,,,,,,,2.871,,SELL,47.5,,2.9812,,,,,,37.44,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:52,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,2.8533,2.8323,2.8114,2.7905,2.7695,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-02,Índice Dólar,UUP,,,,,,,,,,,28.975,,SELL,59.5,,29.1287,,,,,,39.61,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:52,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,28.9545,28.9302,28.9059,28.8817,28.8574,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Rechazo en Resistencia,Neutral,Doble Techo (M) con divergencia bajista de RSI,False
+2026-11-02,Bitcoin,BTC-USD,,,,,,,,,,,76783.7109,,SELL,47.5,,78775.9773,,,,,,12.65,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:52,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,76556.2301,76287.3891,76018.548,75749.707,75480.866,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-02,Oro,GC=F,,,,,,,,,,,3952.5,,SELL,80.0,,3982.4779,,,,,,62.06,Bajista,Cruce Alcista,16:58,ORDEN DIRECTA: VENDER (SHORT),3943.2718,3932.3657,3921.4597,3910.5536,3899.6476,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",True,Confluencia técnica general (sin rebote puntual detectado),Bajista,Doble Techo (M) con divergencia bajista de RSI,False
+2026-11-02,Petróleo WTI,CL=F,,,,,,,,,,,96.75,,BUY,52.5,,95.0466,,,,,,21.13,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:58,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,97.3189,97.9911,98.6634,99.3357,100.008,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-02,Gas Natural,NG=F,,,,,,,,,,,2.87,,SELL,47.5,,2.9812,,,,,,37.44,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:58,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,2.8523,2.8313,2.8104,2.7895,2.7685,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-02,Índice Dólar,UUP,,,,,,,,,,,28.975,,SELL,59.5,,29.1287,,,,,,39.61,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:58,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,28.9545,28.9302,28.9059,28.8817,28.8574,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Rechazo en Resistencia,Neutral,Doble Techo (M) con divergencia bajista de RSI,False
+2026-11-02,Bitcoin,BTC-USD,,,,,,,,,,,76829.6016,,SELL,47.5,,78775.9773,,,,,,12.95,Mixto (1D Alcista / 1H Bajista),Cruce Bajista,16:58,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,76602.1207,76333.2797,76064.4387,75795.5977,75526.7566,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-03,Oro,GC=F,,,,,,,,,,,3947.0,,SELL,95.0,,3983.4978,,,,,,45.51,Bajista,Cruce Alcista,12:59,ORDEN DIRECTA: VENDER (SHORT),3937.1118,3925.4257,3913.7396,3902.0534,3890.3673,que el histograma del MACD en 1H/15M gire a favor de la dirección,True,Rechazo en EMA200,Bajista,Doble Techo (M) con divergencia bajista de RSI,True
+2026-11-03,Petróleo WTI,CL=F,,,,,,,,,,,95.79,,SELL,70.0,,98.9454,,,,,,46.19,Bajista,Cruce Bajista,12:59,PRE-ALERTA PREDICTIVA: BUSCAR VENTA (SHORT),95.1001,94.2849,93.4696,92.6543,91.839,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",True,Confluencia técnica general (sin rebote puntual detectado),Bajista,Ninguno,False
+2026-11-03,Gas Natural,NG=F,,,,,,,,,,,2.872,,SELL,47.5,,2.9313,,,,,,48.98,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:59,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,2.8592,2.8441,2.8291,2.814,2.7989,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Ninguno,False
+2026-11-03,Índice Dólar,UUP,,,,,,,,,,,28.995,,BUY,85.0,,28.9064,,,,,,46.34,Alcista,Cruce Alcista,12:59,ORDEN DIRECTA: COMPRAR (LONG),29.0149,29.0385,29.062,29.0856,29.1092,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,True,Rebote en EMA200,Alcista,Ninguno,False
+2026-11-03,Bitcoin,BTC-USD,,,,,,,,,,,77578.4219,,BUY,52.5,,76213.3455,,,,,,61.24,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:59,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,77803.5683,78069.6504,78335.7326,78601.8147,78867.8969,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Doble Suelo (W) con divergencia alcista de RSI,False
+2026-11-04,Oro,GC=F,,,,,,,,,,,4053.7,,SELL,77.0,,4068.3993,,,,,,84.66,Bajista,Cruce Alcista,12:00,ORDEN DIRECTA: VENDER (SHORT),4041.2621,4026.5628,4011.8635,3997.1642,3982.4649,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,True,Rechazo en Resistencia,Bajista,Doble Techo (M) con divergencia bajista de RSI,False
+2026-11-04,Petróleo WTI,CL=F,,,,,,,,,,,93.46,,SELL,60.0,,97.2515,,,,,,26.6,Bajista,Cruce Bajista,12:00,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,92.9017,92.242,91.5822,90.9225,90.2627,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Bajista,Ninguno,False
+2026-11-04,Gas Natural,NG=F,,,,,,,,,,,2.899,,SELL,55.0,,2.9379,,,,,,50.47,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:00,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,2.8829,2.8639,2.8448,2.8258,2.8068,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Testeo de EMA200,Neutral,Doble Techo (M) con divergencia bajista de RSI,False
+2026-11-04,Índice Dólar,UUP,,,,,,,,,,,28.8833,,BUY,50.0,,28.8362,,,,,,41.69,Alcista,Cruce Bajista,12:00,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,28.9041,28.9287,28.9533,28.9779,29.0025,que el histograma del MACD en 1H/15M gire a favor de la dirección,False,Confluencia técnica general (sin rebote puntual detectado),Alcista,Ninguno,False
+2026-11-04,Bitcoin,BTC-USD,,,,,,,,,,,79244.2422,,BUY,57.5,,75549.6061,,,,,,74.02,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,12:00,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,79562.4439,79938.5004,80314.557,80690.6136,81066.6701,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Doble Suelo (W) con divergencia alcista de RSI,False
+2026-11-06,Oro,GC=F,,,,,,,,,,,4054.5,,SELL,62.5,,4129.5537,,,,,,31.55,Mixto (1D Bajista / 1H Alcista),Cruce Bajista,11:57,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,4043.7554,4031.0572,4018.359,4005.6608,3992.9626,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Doble Techo (M) con divergencia bajista de RSI,False
+2026-11-06,Petróleo WTI,CL=F,,,,,,,,,,,90.62,,SELL,55.0,,92.6286,,,,,,46.86,Bajista,Cruce Bajista,11:57,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,90.0779,89.4371,88.7964,88.1557,87.515,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Bajista,Ninguno,False
+2026-11-06,Gas Natural,NG=F,,,,,,,,,,,2.991,,BUY,40.0,,2.9191,,,,,,62.87,Alcista,Cruce Bajista,11:57,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,3.007,3.026,3.0449,3.0639,3.0828,que el histograma del MACD en 1H/15M gire a favor de la dirección,False,Confluencia técnica general (sin rebote puntual detectado),Alcista,Ninguno,False
+2026-11-06,Índice Dólar,UUP,,,,,,,,,,,29.1122,,BUY,85.0,,28.8351,,,,,,78.26,Alcista,Cruce Alcista,11:57,ORDEN DIRECTA: COMPRAR (LONG),29.1393,29.1714,29.2034,29.2355,29.2675,"un rebote técnico confirmado en EMA200, Banda de Bollinger o soporte/resistencia",True,Confluencia técnica general (sin rebote puntual detectado),Alcista,Doble Suelo (W) con divergencia alcista de RSI,False
+2026-11-06,Bitcoin,BTC-USD,,,,,,,,,,,75363.8125,,SELL,52.5,,76469.6105,,,,,,30.76,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,11:57,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,75124.8998,74842.5484,74560.1971,74277.8457,73995.4943,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Doble Techo (M) con divergencia bajista de RSI,False
+2026-11-06,Oro,GC=F,,,,,,,,,,,4071.6001,,BUY,72.5,,4033.3744,,,,,,58.09,Mixto (1D Bajista / 1H Alcista),Cruce Alcista,17:03,PRE-ALERTA PREDICTIVA: BUSCAR COMPRA (LONG),4081.0915,4092.3086,4103.5257,4114.7428,4125.96,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,True,Rebote en EMA200,Neutral,Doble Suelo (W) con divergencia alcista de RSI,False
+2026-11-06,Petróleo WTI,CL=F,,,,,,,,,,,91.01,,SELL,70.0,,92.6327,,,,,,44.81,Bajista,Cruce Bajista,17:03,PRE-ALERTA PREDICTIVA: BUSCAR VENTA (SHORT),90.4451,89.7774,89.1098,88.4421,87.7745,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,True,Rechazo en EMA200,Bajista,Ninguno,False
+2026-11-06,Gas Natural,NG=F,,,,,,,,,,,2.992,,BUY,50.0,,2.9166,,,,,,52.2,Alcista,Cruce Bajista,17:03,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,3.0107,3.0328,3.0549,3.077,3.0991,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Alcista,Ninguno,False
+2026-11-06,Índice Dólar,UUP,,,,,,,,,,,29.145,,BUY,55.0,,28.8352,,,,,,88.27,Alcista,Cruce Alcista,17:03,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,29.1712,29.2021,29.233,29.2639,29.2948,un rebote confirmado del RSI desde zona de sobreventa o sobrecompra,False,Confluencia técnica general (sin rebote puntual detectado),Alcista,Ninguno,False
+2026-11-06,Bitcoin,BTC-USD,,,,,,,,,,,75764.8984,,SELL,42.5,,76316.6709,,,,,,53.89,Mixto (1D Alcista / 1H Bajista),Cruce Alcista,17:03,SEGUIMIENTO INTRADÍA: MANTENERSE FUERA / ESPERAR,75506.6188,75201.3792,74896.1397,74590.9001,74285.6605,que el histograma del MACD en 1H/15M gire a favor de la dirección,False,Confluencia técnica general (sin rebote puntual detectado),Neutral,Doble Techo (M) con divergencia bajista de RSI,False

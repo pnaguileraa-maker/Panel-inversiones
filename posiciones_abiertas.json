@@ -1,0 +1,52 @@
+{
+  "Índice Dólar": {
+    "ticker": "UUP",
+    "direccion": "BUY",
+    "precio_entrada": 29.112199783325195,
+    "sl": 28.835069,
+    "sps": [
+      29.139319,
+      29.171368,
+      29.203418,
+      29.235468,
+      29.267517
+    ],
+    "tps_alcanzados": [
+      1
+    ],
+    "fecha_apertura": "2026-11-06T11:58:02.545151-03:00",
+    "probabilidad_apertura": 85.0
+  },
+  "Oro": {
+    "ticker": "GC=F",
+    "direccion": "BUY",
+    "precio_entrada": 4071.60009765625,
+    "sl": 4033.374388,
+    "sps": [
+      4081.091501,
+      4092.308615,
+      4103.525728,
+      4114.742841,
+      4125.959955
+    ],
+    "tps_alcanzados": [],
+    "fecha_apertura": "2026-11-06T17:03:22.025938-03:00",
+    "probabilidad_apertura": 72.5
+  },
+  "Petróleo WTI": {
+    "ticker": "CL=F",
+    "direccion": "SELL",
+    "precio_entrada": 91.01000213623047,
+    "sl": 92.632713,
+    "sps": [
+      90.445073,
+      89.77743,
+      89.109787,
+      88.442144,
+      87.774501
+    ],
+    "tps_alcanzados": [],
+    "fecha_apertura": "2026-11-06T17:03:22.025954-03:00",
+    "probabilidad_apertura": 70.0
+  }
+}
