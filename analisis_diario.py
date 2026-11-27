@@ -41,14 +41,20 @@ RR_MINIMO_INSTITUCIONAL = 1.5
 
 SYSTEM_PROMPT_INSTITUCIONAL = """Eres un Gestor de Riesgo Cuantitativo y Trader Institucional especializado en materias primas (WTI, Oro XAU/USD), índices y ETFs. Tu única función es auditar señales técnicas precalculadas y redactar alertas ejecutivas para Telegram.
 
+CONTEXTO: este mensaje solo se dispara cuando el precio YA confirmó el quiebre/rebote del nivel de soporte o resistencia (no es una proyección ni un "prepárate"): es una oportunidad de entrada vigente en este momento. Redacta en consecuencia, con urgencia y precisión, nunca en condicional.
+
 REGLAS ESTRICTAS:
-1. CERO CÁLCULOS INVENTADOS: Usa exclusivamente los precios, niveles de Entrada, Stop Loss (SL), Take Profit (TP) y Ratio R:R entregados en los datos de entrada. Jamás modifiques ni estimes un decimal.
+1. CERO CÁLCULOS INVENTADOS: Usa exclusivamente los precios, niveles de Entrada, Stop Loss (SL), Take Profit (TP), Ratio R:R, Soporte y Resistencia entregados en los datos de entrada. Jamás modifiques ni estimes un decimal.
 2. FILTRO DE CALIDAD (VETO): Si el Ratio R:R es menor a 1:1.5, si la tendencia macro contradice la entrada sin divergencia clara, o si hay ruido extremo de volatilidad, responde únicamente con la palabra: DESCARTAR.
 3. TONO Y FORMATO: Escribe en español técnico, directo y sin adornos. Máximo 180 palabras. Usa formato HTML compatible con Telegram (<b>, <i>, <code>).
 
 ESTRUCTURA OBLIGATORIA DEL MENSAJE:
 <b>[SESGO: COMPRA / VENTA] — [ACTIVO] ([TIMEFRAME])</b>
 <i>Tesis institucional en 2 líneas: confluencia técnica, estructura de mercado y catalizador.</i>
+
+<b>Mapa de Niveles:</b>
+• <b>Soporte:</b> <code>[Precio soporte]</code>
+• <b>Resistencia:</b> <code>[Precio resistencia]</code>
 
 <b>Niveles de Ejecución:</b>
 • <b>Entrada:</b> <code>[Precio]</code>
@@ -117,18 +123,13 @@ VELAS_PATRON_DOBLE = 40        # barras recientes (15M/1H) donde se busca el pat
 TOLERANCIA_DOBLE_PCT = 0.004   # 0.4%: cuán "similares" deben ser los dos mínimos/máximos
 BONO_PATRON_DOBLE = 15         # bonificación de probabilidad al confirmarse el patrón (+15%)
 
-# --- Parámetros del sistema de anticipación temprana (pre-alerta inminente) ---
-# Distancia máxima al nivel de gatillo (línea de cuello del patrón W/M, o soporte/
-# resistencia en su defecto) para avisar que la activación está estimada en 5-10 mins.
-DISTANCIA_INMINENTE_PCT = 0.0020  # 0.20% del precio actual
-
 # --- Parámetros de la vigilancia intra-hora (sin agregar un cron nuevo) ---
 # El reporte sigue disparándose una vez por hora; si al terminar algún activo de alta
-# convicción quedó CERCA del gatillo (dentro de esta banda más amplia, pero sin llegar
-# aún al umbral estricto de DISTANCIA_INMINENTE_PCT), el mismo job se queda re-chequeando
-# solo esos activos cada VIGILANCIA_INTERVALO_MIN minutos, hasta VIGILANCIA_DURACION_MIN,
-# y dispara la pre-alerta inminente en el momento exacto en que cruza el umbral — sin
-# esperar al reporte de la próxima hora.
+# convicción quedó CERCA del gatillo (dentro de esta banda) pero sin confirmarlo aún con
+# una vela cerrada (ver detectar_activacion_confirmada), el mismo job se queda
+# re-chequeando solo esos activos cada VIGILANCIA_INTERVALO_MIN minutos, hasta
+# VIGILANCIA_DURACION_MIN, y dispara la alerta "ENTRA AHORA" en el momento exacto en que
+# se confirme — sin esperar al reporte de la próxima hora.
 VIGILANCIA_BANDA_PCT = 0.0060      # 0.60%: banda "cercana" que activa la vigilancia
 VIGILANCIA_INTERVALO_MIN = 5       # minutos entre cada re-chequeo
 VIGILANCIA_DURACION_MIN = 35       # tope de minutos vigilando (deja margen antes de la próxima hora)
@@ -515,6 +516,45 @@ def calcular_niveles_intradia(precio, atr, direccion, soporte=None, resistencia=
     return round(sl, 6), sps
 
 
+def detectar_activacion_confirmada(df, zona_activacion, direccion, patron_detectado):
+    """Determina si el gatillo de entrada YA quedó confirmado por una vela cerrada, en
+    vez de una simple cercanía de precio (que solo significa "está por llegar"). Dos
+    semánticas distintas según el tipo de gatillo:
+    - Patrón W/M (ruptura de línea de cuello): se exige que el CIERRE ya haya cruzado
+      la línea de cuello de una vela a la siguiente (cierre anterior a un lado, cierre
+      actual al otro) — una ruptura real, no una mecha.
+    - Soporte/Resistencia simple (tesis de rebote): se exige que la vela más reciente
+      haya tocado el nivel (mínimo/máximo) Y cerrado de vuelta a favor de la dirección
+      (vela alcista para BUY en soporte, bajista para SELL en resistencia) — un
+      toque-y-rebote ya confirmado, no una mera aproximación."""
+    if df is None or df.empty or len(df) < 2:
+        return False
+    if zona_activacion is None or pd.isna(zona_activacion):
+        return False
+
+    actual = df.iloc[-1]
+    cierre_actual = actual.get("Close")
+    cierre_anterior = df["Close"].iloc[-2]
+    if pd.isna(cierre_actual) or pd.isna(cierre_anterior):
+        return False
+
+    if patron_detectado:
+        if direccion == "BUY":
+            return bool(cierre_anterior <= zona_activacion < cierre_actual)
+        return bool(cierre_anterior >= zona_activacion > cierre_actual)
+
+    atr = _ultimo(df, "ATR_14") or 0
+    margen = atr * 0.1
+    if direccion == "BUY":
+        tocó_soporte = actual.get("Low") <= zona_activacion + margen
+        rebotó = cierre_actual > zona_activacion and cierre_actual > actual.get("Open")
+        return bool(tocó_soporte and rebotó)
+
+    tocó_resistencia = actual.get("High") >= zona_activacion - margen
+    rebotó = cierre_actual < zona_activacion and cierre_actual < actual.get("Open")
+    return bool(tocó_resistencia and rebotó)
+
+
 # ---------------------------------------------------------------------------
 # 5. Generación de la señal completa por activo
 # ---------------------------------------------------------------------------
@@ -572,17 +612,24 @@ def generar_senal(nombre, ticker, datos_tf):
     sl, sps = calcular_niveles_intradia(precio, atr, direccion, soporte, resistencia)
     falta = factor_faltante(componentes)
 
-    # Sistema de anticipación temprana: distancia al nivel de gatillo (línea de cuello
-    # del patrón W/M si se detectó; soporte/resistencia estructural en su defecto).
+    # Sistema de entrada por gatillo: nivel de activación (línea de cuello del patrón
+    # W/M si se detectó; soporte/resistencia estructural en su defecto). La vigilancia
+    # intra-hora usa distancia_pct_activacion para decidir qué activos re-chequear, pero
+    # el aviso operativo ("ENTRA AHORA") solo se dispara cuando detectar_activacion_confirmada
+    # confirma, con una vela ya cerrada, que el precio rompió o rebotó en ese nivel —
+    # no basta con estar cerca.
     zona_activacion = nivel_cuello_patron
     if zona_activacion is None:
         zona_activacion = soporte if direccion == "BUY" else resistencia
 
     distancia_pct_activacion = None
-    pre_alerta_inminente = False
     if zona_activacion is not None and not pd.isna(zona_activacion) and precio > 0:
         distancia_pct_activacion = abs(precio - zona_activacion) / precio
-        pre_alerta_inminente = distancia_pct_activacion < DISTANCIA_INMINENTE_PCT and probabilidad >= PROB_ALERTA
+
+    df_gatillo = m15 if m15 is not None and not m15.empty else h1
+    pre_alerta_inminente = probabilidad >= PROB_ALERTA and detectar_activacion_confirmada(
+        df_gatillo, zona_activacion, direccion, patron_detectado
+    )
 
     sesgo_1d = _sesgo_ema(d1)
     sesgo_1h = _sesgo_ema(h1)
@@ -626,6 +673,7 @@ def generar_senal(nombre, ticker, datos_tf):
         "patron_label": etiqueta_patron, "zona_activacion": zona_activacion,
         "distancia_pct_activacion": distancia_pct_activacion,
         "pre_alerta_inminente": pre_alerta_inminente,
+        "soporte": soporte, "resistencia": resistencia,
     }
 
 
@@ -893,6 +941,8 @@ def construir_datos_senal(r, timeframe="1H"):
         "timeframe": timeframe,
         "sesgo": "COMPRA" if r["direccion"] == "BUY" else "VENTA",
         "precio_entrada": r["precio"],
+        "soporte": r.get("soporte") if r.get("soporte") is not None else "no disponible",
+        "resistencia": r.get("resistencia") if r.get("resistencia") is not None else "no disponible",
         "stop_loss": r["sl"],
         "distancia_sl_pct": distancia_sl_pct,
         "take_profit_1": r["sps"][0],
@@ -1089,54 +1139,26 @@ def gestionar_posiciones(resultados):
     guardar_posiciones_abiertas(posiciones)
 
 
+def _formato_precio_o_nd(valor):
+    if valor is None or (isinstance(valor, float) and pd.isna(valor)):
+        return "N/D"
+    return _formato_precio(valor)
+
+
 def construir_titulo(r):
     """Título obligatorio por activo, en la primera línea del bloque: la orden
-    operativa (COMPRAR/VENDER/ESPERAR) nunca queda ambigua. Si el sistema de
-    anticipación temprana detecta que el precio está a menos de DISTANCIA_INMINENTE_PCT
-    del nivel de gatillo (línea de cuello del patrón W/M, o soporte/resistencia en su
-    defecto) con probabilidad >= 70%, el título se reemplaza por la pre-alerta inminente,
-    declarando explícitamente COMPRA (LONG) o VENTA (SHORT)."""
-    if r.get("pre_alerta_inminente"):
-        if r["direccion"] == "BUY":
-            return f"⏳ *PRE-ALERTA INMINENTE (5-10 MINS): PREPARAR COMPRA (LONG) | {r['nombre'].upper()}*"
-        return f"⏳ *PRE-ALERTA INMINENTE (5-10 MINS): PREPARAR VENTA (SHORT) | {r['nombre'].upper()}*"
+    operativa (COMPRAR/VENDER/ESPERAR) nunca queda ambigua. Los activos con el gatillo
+    de entrada YA confirmado (r['pre_alerta_inminente']) no pasan por este bloque: se
+    envían aparte como alerta unificada "ENTRA AHORA" (ver construir_mensaje_entra_ahora)."""
     return f"{r['emoji']} *{r['etiqueta_estado']} | {r['nombre'].upper()}*"
 
 
-def construir_bloque_pre_alerta_inminente(r):
-    """Cuerpo dedicado y determinístico (no depende de la narrativa IA) para la
-    pre-alerta inminente: la dirección (COMPRAR/VENDER) queda explícita en cada línea
-    accionable, con el precio de gatillo exacto, los puntos que faltan para romperlo, y
-    la instrucción operativa literal pedida."""
-    accion = "COMPRAR" if r["direccion"] == "BUY" else "VENDER"
-    accion_corta = "COMPRA" if r["direccion"] == "BUY" else "VENTA"
-    puntos_faltantes = abs(r["precio"] - r["zona_activacion"])
-    gatillo = _formato_precio(r["zona_activacion"])
-
-    lineas = [
-        construir_titulo(r),
-        f"🎯 *Acción Requerida:* {accion}",
-        f"📍 *Precio de Gatillo:* {gatillo} _(Faltan {puntos_faltantes:,.2f} pts / ~5-10 min)_",
-        f"🚀 *Entrada Estimada:* {_formato_precio(r['precio'])}",
-        f"🛡️ *SL Proyectado:* {_formato_precio(r['sl'])} _(Rango acotado 200-400 pts)_",
-    ]
-    # Cada Take Profit en su propia línea con check ✅ (no un rango combinado), para
-    # que se vea igual que un canal de señales real.
-    for i, sp in enumerate(r["sps"], start=1):
-        lineas.append(f"✅ *Take Profit {i}:* {_formato_precio(sp)}")
-    lineas.append(
-        f"💬 *Instrucción Operativa:* \"Tener la plataforma abierta. Si el precio rompe "
-        f"{gatillo}, ingresar inmediatamente en {accion_corta}\"."
-    )
-    return "\n".join(lineas)
-
-
 def construir_bloque_alerta(r, narrativas):
-    # La pre-alerta inminente tiene un cuerpo propio y autocontenido (formato estricto
-    # pedido), distinto del bloque normal de alta convicción.
-    if r.get("pre_alerta_inminente"):
-        return construir_bloque_pre_alerta_inminente(r)
-
+    """Bloque del resumen horario para activos de alta convicción cuyo gatillo de
+    entrada todavía NO fue confirmado por una vela cerrada (ver detectar_activacion_confirmada):
+    muestra el panorama completo (niveles proyectados, soporte/resistencia, confluencia)
+    a modo informativo, sin instrucción de ejecución inmediata — esa llega en el mensaje
+    aparte "ENTRA AHORA" en cuanto se confirme el quiebre/rebote."""
     narrativa = narrativas.get(r["nombre"]) or narrativa_instruccion_respaldo(r)
     # La narrativa puede venir de la IA (texto libre no controlado): se escapa antes de
     # insertarla en el Markdown del mensaje para que Telegram nunca la rechace por
@@ -1147,7 +1169,8 @@ def construir_bloque_alerta(r, narrativas):
         construir_titulo(r),
         f"📊 *Probabilidad:* {r['probabilidad']:.0f}% | 🎯 *Sesgo:* {r['sesgo_general']}",
         "",
-        f"🚀 *Entrada:* {_formato_precio(r['precio'])}",
+        f"📐 *Soporte:* {_formato_precio_o_nd(r.get('soporte'))} | *Resistencia:* {_formato_precio_o_nd(r.get('resistencia'))}",
+        f"🚀 *Entrada proyectada:* {_formato_precio(r['precio'])}",
         f"🛡️ *SL:* {_formato_precio(r['sl'])} _(Brecha acotada 200-400 pts, ~0.65×ATR)_",
     ]
     for i, sp in enumerate(r["sps"], start=1):
@@ -1162,8 +1185,27 @@ def construir_bloque_alerta(r, narrativas):
     ]
     if r.get("patron_label"):
         lineas.append(f"🔎 *Patrón Chartista:* {r['patron_label']} _(bonificación +{BONO_PATRON_DOBLE}% aplicada)_")
-    lineas.append(f"💬 *Instrucción Directa:* _{narrativa} {r['tag_operativo']}_")
+    lineas.append(f"💬 *A la espera de confirmación:* _{narrativa}_")
+    lineas.append("⏳ _Sin orden de ejecución todavía — se avisa aparte en cuanto el precio confirme el gatillo._")
     return "\n".join(lineas)
+
+
+def construir_mensaje_entra_ahora(r, texto_ia):
+    """Alerta unificada y accionable: se dispara SOLO cuando detectar_activacion_confirmada
+    ya confirmó, con una vela cerrada, que el precio rompió o rebotó en el gatillo de
+    entrada (ver generar_senal). Un único mensaje en HTML con el veredicto, soporte y
+    resistencia, y la tesis + niveles de ejecución ya redactados por el motor
+    institucional (Groq -> Gemini) en construir_datos_senal/generar_analisis_institucional."""
+    accion = "COMPRA (LONG)" if r["direccion"] == "BUY" else "VENTA (SHORT)"
+    encabezado = (
+        f"🟢 <b>ENTRA AHORA — {accion} CONFIRMADA</b>\n"
+        f"<i>{html.escape(r['nombre'])} ({html.escape(r['ticker'])}) · Probabilidad {r['probabilidad']:.0f}%</i>\n\n"
+    )
+    pie = (
+        "\n\n<i>Contenido educativo generado automáticamente. "
+        "No constituye asesoría financiera personalizada.</i>"
+    )
+    return encabezado + texto_ia + pie
 
 
 def construir_linea_resumen(r):
@@ -1175,14 +1217,22 @@ def construir_linea_resumen(r):
 
 def construir_mensaje_telegram(fecha_hoy, hora_texto, resultados, narrativas):
     altos = [r for r in resultados if r["alta_conviccion"]]
+    confirmados = [r for r in altos if r["pre_alerta_inminente"]]
+    en_formacion = [r for r in altos if not r["pre_alerta_inminente"]]
     resto = [r for r in resultados if not r["alta_conviccion"]]
 
     bloques = [f"📍 *REPORTE DE SEGUIMIENTO INTRADÍA - {hora_texto} (Chile)*\n{'=' * 20}"]
 
-    if altos:
-        bloques.append("🚨 *ALERTA AUTOMÁTICA DE TRADING EN TIEMPO REAL (PROBABILIDAD >= 70%)*")
+    if confirmados:
+        nombres = ", ".join(r["nombre"] for r in confirmados)
+        bloques.append(
+            f"✅ *GATILLO CONFIRMADO — ver alerta \"ENTRA AHORA\" enviada aparte:* {nombres}"
+        )
+
+    if en_formacion:
+        bloques.append("🚨 *ALTA CONVICCIÓN EN FORMACIÓN (PROBABILIDAD >= 70%, a la espera del gatillo)*")
         separador = "\n\n" + ("─" * 20) + "\n\n"
-        bloques.append(separador.join(construir_bloque_alerta(r, narrativas) for r in altos))
+        bloques.append(separador.join(construir_bloque_alerta(r, narrativas) for r in en_formacion))
 
     if resto:
         bloques.append(
@@ -1196,23 +1246,29 @@ def construir_mensaje_telegram(fecha_hoy, hora_texto, resultados, narrativas):
     return separador_principal.join(bloques)
 
 
-def construir_mensaje_vigilancia(r, hora_texto):
-    """Mensaje independiente (fuera del reporte horario) para cuando la vigilancia
-    intra-hora detecta que un activo cruzó al umbral de pre-alerta inminente entre un
-    reporte y el siguiente."""
-    encabezado = f"📍 *ACTUALIZACIÓN EN VIVO - {hora_texto} (Chile)*\n{'=' * 20}\n\n"
-    pie = "\n\n_Contenido educativo generado automáticamente. No constituye asesoría financiera personalizada._"
-    return encabezado + construir_bloque_pre_alerta_inminente(r) + pie
+def enviar_alerta_entra_ahora(r):
+    """Construye (vía IA institucional Groq -> Gemini) y envía la alerta unificada
+    "ENTRA AHORA" para un activo cuyo gatillo de entrada ya fue confirmado por una vela
+    cerrada. Si la IA aplica el veto de calidad (DESCARTAR) no se envía nada — el filtro
+    de riesgo tiene la última palabra incluso sobre una señal técnica ya confirmada."""
+    texto_ia = generar_analisis_institucional(construir_datos_senal(r))
+    if not texto_ia:
+        print(f"⚠️ Gatillo confirmado para {r['nombre']} pero el análisis institucional no estuvo disponible (Groq y Gemini fallaron); no se envía la alerta.")
+        return
+    if texto_ia.strip().upper() == "DESCARTAR":
+        print(f"🚫 Gatillo confirmado para {r['nombre']}, pero el filtro de calidad institucional lo descartó.")
+        return
+    enviar_telegram_mensaje(construir_mensaje_entra_ahora(r, texto_ia), parse_mode="HTML")
+    print(f"🟢 Alerta ENTRA AHORA enviada para {r['nombre']}.")
 
 
 def vigilar_oportunidades_inminentes(resultados):
     """Vigilancia intra-hora (sin agregar un cron nuevo): si algún activo de alta
-    convicción quedó cerca del gatillo (dentro de VIGILANCIA_BANDA_PCT) pero aún no
-    cruzó el umbral estricto de pre-alerta inminente, este mismo job se queda
-    re-chequeando solo esos activos cada VIGILANCIA_INTERVALO_MIN minutos (hasta
-    VIGILANCIA_DURACION_MIN) y dispara la alerta apenas cruce el umbral. No usa IA (el
-    cuerpo de la pre-alerta es determinístico), así que no genera costo adicional de
-    Claude ni retrasa el envío del reporte principal (corre después de enviarlo)."""
+    convicción quedó cerca del gatillo (dentro de VIGILANCIA_BANDA_PCT) pero aún no lo
+    confirmó, este mismo job se queda re-chequeando solo esos activos cada
+    VIGILANCIA_INTERVALO_MIN minutos (hasta VIGILANCIA_DURACION_MIN) y dispara la alerta
+    "ENTRA AHORA" apenas una vela cerrada confirme el quiebre/rebote (no retrasa el envío
+    del reporte principal: corre después de enviarlo)."""
     candidatos = {
         r["nombre"]: r["ticker"] for r in resultados
         if r["alta_conviccion"] and not r["pre_alerta_inminente"]
@@ -1234,9 +1290,8 @@ def vigilar_oportunidades_inminentes(resultados):
                 continue
 
             if senal["pre_alerta_inminente"]:
-                hora_actual_texto = datetime.datetime.now(ZONA_CHILE).strftime("%I:%M %p").lstrip("0")
-                enviar_telegram_mensaje(construir_mensaje_vigilancia(senal, hora_actual_texto))
-                print(f"⏳ Pre-alerta inminente disparada en vigilancia para {nombre}.")
+                enviar_alerta_entra_ahora(senal)
+                print(f"✅ Gatillo confirmado en vigilancia para {nombre}.")
                 del candidatos[nombre]
             elif senal["distancia_pct_activacion"] is None or senal["distancia_pct_activacion"] >= VIGILANCIA_BANDA_PCT:
                 print(f"ℹ️ {nombre} se alejó del gatillo; se deja de vigilar esta hora.")
@@ -1352,7 +1407,7 @@ def construir_tarjeta_html(r):
     )
     if r.get("pre_alerta_inminente"):
         accion_ribbon = "COMPRA" if r["direccion"] == "BUY" else "VENTA"
-        ribbon = f'<div class="alerta-ribbon">⏳ Pre-alerta inminente: preparar {accion_ribbon} (5-10 min)</div>'
+        ribbon = f'<div class="alerta-ribbon">🟢 Gatillo confirmado: ENTRA AHORA — {accion_ribbon}</div>'
     elif r["alta_conviccion"]:
         ribbon = '<div class="alerta-ribbon">🚨 Alta convicción detectada</div>'
     else:
@@ -1766,16 +1821,14 @@ def generar_reporte():
     )
     enviar_telegram_mensaje(mensaje)
 
-    # 3bis. Análisis institucional (Groq -> Gemini): una alerta ejecutiva HTML adicional
-    #       por cada activo de alta convicción, auditada sobre los niveles ya calculados
-    #       en Python (ver construir_datos_senal). Si la IA devuelve "DESCARTAR" (veto de
-    #       calidad) o ambos proveedores fallan, simplemente no se envía esa alerta.
+    # 3bis. Alerta "ENTRA AHORA": un único mensaje unificado (niveles + tesis del motor
+    #       institucional Groq -> Gemini) por cada activo cuyo gatillo de entrada YA fue
+    #       confirmado por una vela cerrada (ver detectar_activacion_confirmada). Los que
+    #       siguen en formación solo aparecen en el resumen horario, sin gastar esta
+    #       llamada de IA todavía (ver enviar_alerta_entra_ahora para el veto de calidad).
     for r in altos:
-        analisis_html = generar_analisis_institucional(construir_datos_senal(r))
-        if not analisis_html or analisis_html.strip().upper() == "DESCARTAR":
-            print(f"🚫 Análisis institucional descartado o no disponible para {r['nombre']}.")
-            continue
-        enviar_telegram_mensaje(analisis_html, parse_mode="HTML")
+        if r["pre_alerta_inminente"]:
+            enviar_alerta_entra_ahora(r)
 
     carpeta_temp = tempfile.mkdtemp(prefix="graficos_")
     try:
@@ -1876,6 +1929,7 @@ def generar_senal_mock(escenario):
         "zona_activacion": escenario.get("zona_activacion"),
         "distancia_pct_activacion": escenario.get("distancia_pct_activacion"),
         "pre_alerta_inminente": escenario.get("pre_alerta_inminente", False),
+        "soporte": escenario["soporte"], "resistencia": escenario["resistencia"],
     }
 
 
